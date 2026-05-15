@@ -15,12 +15,14 @@ from rfdf.dsp.doa.music_2d import music_2d
 from rfdf.dsp.doa.mvdr import mvdr
 from rfdf.dsp.doa.result import Algorithm, Doa2DResult, DoaEstimate
 from rfdf.dsp.doa.root_music import root_music
+from rfdf.dsp.doa.synthetic_aperture import StationCapture, synthetic_aperture_doa
 from rfdf.dsp.doa.wideband import cssm, incoherent_wideband_music
 
 __all__ = [
     "Algorithm",
     "Doa2DResult",
     "DoaEstimate",
+    "StationCapture",
     "bartlett",
     "cssm",
     "esprit",
@@ -29,5 +31,6 @@ __all__ = [
     "music_2d",
     "mvdr",
     "root_music",
+    "synthetic_aperture_doa",
     "unitary_esprit",
 ]
