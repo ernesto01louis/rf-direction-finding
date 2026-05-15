@@ -1,6 +1,6 @@
 [project]
 name = "rfdf"
-version = "0.0.2"
+version = "0.0.3"
 description = "Hardware-agnostic RF direction finding, signal classification, and phased-array research platform"
 authors = [{name = "Louis", email = "louis_ernesto@aol.com"}]
 license = {text = "Apache-2.0"}
@@ -177,7 +177,7 @@ source = ["src/rfdf"]
 branch = true
 
 [tool.coverage.report]
-fail_under = 70  # Stage 2 raises from 0; Stage 3 ratchets to 80.
+fail_under = 80  # Stage 3 ratchet (Stage 1 set 0, Stage 2 raised it to 70).
 show_missing = true
 exclude_also = [
     "if TYPE_CHECKING:",

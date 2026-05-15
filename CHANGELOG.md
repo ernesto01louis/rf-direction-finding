@@ -11,6 +11,48 @@ recorded here per the release.
 
 ## [Unreleased]
 
+## [0.0.3] - 2026-05-15
+
+### Added — classical DOA pipeline
+
+- `rfdf.dsp` — the pure-NumPy/SciPy direction-of-arrival layer: steering manifold
+  (`dsp.steering`), covariance estimation (`dsp.covariance`), geometry presets, and a
+  `DspError` exception taxonomy.
+- Narrowband estimators (`dsp.doa`): Bartlett, MVDR, MUSIC, Root-MUSIC, ESPRIT, and
+  Unitary ESPRIT, with a shared `DoaEstimate` result type and parabola-refined peak
+  picking.
+- 2-D (azimuth + elevation) MUSIC with a `Doa2DResult` surface.
+- Wideband DOA: incoherent wideband MUSIC and the CSSM coherent signal-subspace method.
+- Coherent-source decorrelation (`dsp.coherent`): forward and forward-backward spatial
+  smoothing, and Toeplitz reconstruction.
+- Position-domain synthetic aperture (`dsp.doa.synthetic_aperture`) with coherent,
+  incoherent, and block-diagonal fusion.
+- Calibration framework (`dsp.calibration`): pilot-tone and mutual-coupling procedures,
+  an identity-calibration loader, and `.npz` + TOML persistence.
+- Cramer-Rao lower bound (`dsp.crlb`): the deterministic CRB, a closed-form ULA
+  cross-check, and joint azimuth/elevation. Every estimator has a CRLB-bounded test.
+- Number-of-sources estimation (`dsp.model_order`): AIC, MDL, and SORTE.
+- The `Doa` orchestration class and the `rfdf doa` CLI (`run`, `calibrate`,
+  `benchmark`, `morph-capture`).
+- `examples/01-doa-on-mock-array/` demo and `docs/{doa-algorithms,calibration,
+  synthetic-aperture,crlb}.md`.
+
+### Changed
+
+- Coverage floor raised from 70% to 80%.
+- New `crosscheck` optional extra adds `pyargus` for DOA cross-validation tests; the
+  `coverage` CI job additionally installs `scikit-rf`.
+- `test_pipeline_smoke.py` runs real MUSIC and asserts CRLB-bounded accuracy on three
+  estimators — the Stage 1/2 stub DOA is gone.
+
+### Notes
+
+- `unitary_esprit` ships as ESPRIT with forward-backward averaging — statistically
+  equivalent to the Haardt & Nossek formulation; the real-valued arithmetic transform
+  is deferred. Block-diagonal synthetic-aperture fusion leaves the optional pilot-phase
+  cross-blocks zero. The Khatri-Rao difference-coarray method is deferred. See
+  `STAGE-3-OUTPUTS.md` §4.
+
 ## [0.0.2] - 2026-05-15
 
 ### Added — Hardware abstraction layer
