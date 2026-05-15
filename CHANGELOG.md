@@ -11,6 +11,16 @@ recorded here per the release.
 
 ## [Unreleased]
 
+### Added
+
+- `STAGE-1-OUTPUTS.md` capturing real shipped state for v0.0.1 (identifiers, CI
+  gate inventory, decisions, deviations, verification artifacts, handoff to
+  Stage 2). Section 7 defines the **convention for future stages** — every
+  Stage N MUST ship a `STAGE-N-OUTPUTS.md` of the same shape. Cross-referenced
+  from [`CLAUDE.md`](CLAUDE.md) ("Where to find things" + "When you (Claude)
+  work on this repo") and [`CONTRIBUTING.md`](CONTRIBUTING.md) §9 "Release
+  process".
+
 ## [0.0.1] - 2026-05-15
 
 ### Added

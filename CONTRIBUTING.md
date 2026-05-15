@@ -104,9 +104,15 @@ Maintainers only:
 
 1. Bump `version` in `pyproject.toml`.
 2. Update `CHANGELOG.md`: move `[Unreleased]` content under `[<new-version>] - <date>`.
-3. PR + merge.
-4. Tag: `git tag v<version> -m "<one-line summary>"` then `git push origin v<version>`.
-5. The `release.yml` workflow builds wheel + sdist and uploads to PyPI via Trusted
+3. **Write `STAGE-N-OUTPUTS.md`** at the repo root capturing what actually shipped vs
+   the stage handoff PDF. Convention defined in
+   [STAGE-1-OUTPUTS.md §7](STAGE-1-OUTPUTS.md#7-convention-for-future-stages) — copy
+   the seven sections verbatim and fill them in. **Skipping this is not allowed**;
+   if a stage tags without it the next stage's session must produce it retroactively
+   before any other work.
+4. PR + merge.
+5. Tag: `git tag v<version> -m "<one-line summary>"` then `git push origin v<version>`.
+6. The `release.yml` workflow builds wheel + sdist and uploads to PyPI via Trusted
    Publishing (active from `v0.1.0` onward).
 
 ## 10. Code of conduct
