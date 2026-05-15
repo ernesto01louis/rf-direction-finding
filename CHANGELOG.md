@@ -97,6 +97,10 @@ recorded here per the release.
 - Pre-commit `mypy` hook gains `pydantic-settings`, `structlog`,
   `platformdirs`, `numpy` in `additional_dependencies` so the isolated hook
   env can resolve the new imports.
+- Pre-commit `ruff-pre-commit` pin bumped `v0.7.4 → v0.15.13` to track the
+  dev/CI ruff line (`pyproject.toml [dev]` uses `ruff>=0.7`). The stale pin
+  caused a format-rule skew — assert-message wrapping changed between ruff
+  0.7 and 0.15, so the hook and CI's `ruff format --check` disagreed.
 - `src/rfdf/cli/main.py` wires `rfdf hw` and `rfdf config` sub-apps via
   `app.add_typer(...)`.
 

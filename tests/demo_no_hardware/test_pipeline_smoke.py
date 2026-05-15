@@ -157,6 +157,6 @@ def test_demo_no_hardware_geometry_change_changes_iq(
 
     iq_tight = grab(tight_array)
     iq_loose = grab(loose_array)
-    assert not np.allclose(
-        iq_tight, iq_loose
-    ), "geometry change did not affect IQ — array-factor math is broken"
+    assert not np.allclose(iq_tight, iq_loose), (
+        "geometry change did not affect IQ — array-factor math is broken"
+    )
