@@ -36,3 +36,12 @@ class NotULAError(DspError):
     Vandermonde structure of a ULA. They raise this rather than returning silently
     wrong bearings on an arbitrary array.
     """
+
+
+class CalibrationError(DspError):
+    """A calibration could not be produced, applied, loaded, or saved.
+
+    Covers malformed S-parameter matrices, an IQ block whose channel count does not
+    match the calibration, a missing calibration file, and a missing ``scikit-rf``
+    install when reading a Touchstone file.
+    """
