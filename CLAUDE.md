@@ -28,6 +28,7 @@ License: **Apache-2.0** (`LICENSE` at repo root).
 | [ROADMAP.md](ROADMAP.md) | Stages 1–7 with status |
 | [SECURITY.md](SECURITY.md) | Threat model + secret handling |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Dev setup + commit conventions |
+| `STAGE-N-OUTPUTS.md` (per stage) | **Real shipped state** for each completed stage — read at session start to know what's actually true, not what was *planned*. Latest: [STAGE-1-OUTPUTS.md](STAGE-1-OUTPUTS.md). Convention defined in [STAGE-1-OUTPUTS.md §7](STAGE-1-OUTPUTS.md#7-convention-for-future-stages). |
 
 ## Coding conventions
 
@@ -63,10 +64,14 @@ License: **Apache-2.0** (`LICENSE` at repo root).
 ## When you (Claude) work on this repo
 
 1. Read this file, then VISION.md, then ARCHITECTURE.md before any non-trivial change.
-2. **Propose first, execute later** for any multi-file work. Use a plan file.
-3. Update CHANGELOG.md under `[Unreleased]` for any user-visible change.
-4. Update ROADMAP.md status when finishing a stage.
-5. **Never modify the HAL Protocol classes outside Stage 2.** If a later stage seems to
+2. **Read the latest `STAGE-N-OUTPUTS.md`** at session start to know what *actually*
+   shipped (not what the handoff PDF planned). Listed in §"Where to find things".
+3. **Propose first, execute later** for any multi-file work. Use a plan file.
+4. Update CHANGELOG.md under `[Unreleased]` for any user-visible change.
+5. Update ROADMAP.md status when finishing a stage.
+6. **Finishing a stage requires shipping `STAGE-N-OUTPUTS.md`** in the same PR (or
+   immediate follow-up). Convention defined in [STAGE-1-OUTPUTS.md §7](STAGE-1-OUTPUTS.md#7-convention-for-future-stages).
+7. **Never modify the HAL Protocol classes outside Stage 2.** If a later stage seems to
    need a new method, stop and fix Stage 2 properly — don't paper over with shims.
 
 ## The hardware-agnostic rule
