@@ -44,11 +44,10 @@ def test_no_domain_libs_loaded_on_import() -> None:
 
     This is the architectural commitment from VISION.md §3 made enforceable. The CI
     `zero-domain-deps` job runs the same assertion against a base install; this
-    duplicate keeps it local.
+    duplicate keeps it local. The probe runs in a fresh interpreter so a domain
+    library imported by an earlier test in the suite cannot pollute the result.
     """
-    import rfdf  # noqa: F401
-
-    banned = {
+    banned = [
         "uhd",
         "pyadi_iio",
         "SoapySDR",
@@ -67,6 +66,19 @@ def test_no_domain_libs_loaded_on_import() -> None:
         "PyNEC",
         "necpp",
         "ai_orchestrator_client",
-    }
-    leaked = banned & set(sys.modules.keys())
-    assert not leaked, f"Domain libs leaked into rfdf import surface: {leaked!r}"
+    ]
+    probe = (
+        "import sys\n"
+        "import rfdf\n"
+        f"banned = {banned!r}\n"
+        "leaked = sorted(set(banned) & set(sys.modules))\n"
+        "print(','.join(leaked))\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", probe],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    leaked = result.stdout.strip()
+    assert not leaked, f"Domain libs leaked into rfdf import surface: {leaked}"

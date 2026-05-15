@@ -143,6 +143,11 @@ files = ["src/rfdf"]
 module = ["tests.*", "examples.*"]
 ignore_errors = true
 
+# scikit-rf (read lazily in rfdf.dsp.calibration) ships no type stubs.
+[[tool.mypy.overrides]]
+module = ["skrf.*"]
+ignore_missing_imports = true
+
 # ---------------------------------------------------------------------------
 # pytest
 # ---------------------------------------------------------------------------
