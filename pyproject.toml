@@ -72,6 +72,23 @@ all = ["rfdf[ml,ml-onnx,api,antenna,all-hardware,all-compute,orchestrator]"]
 [project.scripts]
 rfdf = "rfdf.cli.main:app"
 
+# Backend discovery (one entry-point per HAL Protocol group). Backends ship in
+# the base package because they only depend on numpy + sigmf (also base deps);
+# vendor SDKs (uhd, hamlib, runpod, …) remain behind optional extras.
+[project.entry-points."rfdf.backends.sdr"]
+mock = "rfdf.backends.sdr.mock:create"
+file-replay = "rfdf.backends.sdr.file_replay:create"
+
+[project.entry-points."rfdf.backends.rotator"]
+mock = "rfdf.backends.rotator.mock:create"
+
+[project.entry-points."rfdf.backends.geometry"]
+static = "rfdf.backends.geometry.static:create"
+mock-morph = "rfdf.backends.geometry.mock_morph:create"
+
+[project.entry-points."rfdf.backends.compute"]
+local = "rfdf.backends.compute.local:create"
+
 [project.urls]
 Homepage = "https://github.com/ernesto01louis/rf-direction-finding"
 Documentation = "https://github.com/ernesto01louis/rf-direction-finding"
