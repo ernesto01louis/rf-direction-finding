@@ -165,7 +165,7 @@ source = ["src/rfdf"]
 branch = true
 
 [tool.coverage.report]
-fail_under = 0  # raised in later stages; floor MUST rise per stage
+fail_under = 70  # Stage 2 raises from 0; Stage 3 ratchets to 80.
 show_missing = true
 exclude_also = [
     "if TYPE_CHECKING:",
