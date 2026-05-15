@@ -1,0 +1,32 @@
+# Codecov config for rf-direction-finding.
+#
+# Coverage runs on every PR (cheap — no domain extras installed). Floor
+# rises per stage per ROADMAP.md (Stage 1: 0 — no functional code yet).
+#
+# Tokenless upload via the Codecov GitHub App for public OSS repos.
+
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 2%       # generous wiggle for stochastic runner differences
+        informational: false
+    patch:
+      default:
+        target: auto
+        threshold: 5%       # relaxed during scaffold; tighten before v0.1.0
+        informational: false
+
+comment:
+  require_changes: true     # skip Codecov comment when diff has no coverage impact
+
+ignore:
+  - "tests/"
+  - "examples/"
+  - "docs/"
+  - "ansible/"
+  - "docker-compose/"
+  - "contrib/"
+  - "recipes/"
+  - "src/rfdf/cli/main.py"   # Typer entrypoint is mostly bindings; covered by CLI smoke tests

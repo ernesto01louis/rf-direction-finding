@@ -1,0 +1,221 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Lint: ruff + mypy strict on src/rfdf
+  # ---------------------------------------------------------------------------
+  lint:
+    name: lint (ruff + mypy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install dev extras
+        run: |
+          python -m pip install -U pip
+          python -m pip install -e '.[dev]'
+      - name: ruff check
+        run: ruff check .
+      - name: ruff format --check
+        run: ruff format --check .
+      - name: mypy --strict
+        run: mypy
+
+  # ---------------------------------------------------------------------------
+  # test-base: 3.11 + 3.12 matrix. Verifies the base install works on every
+  # supported interpreter and that tests/unit/ runs cleanly.
+  # ---------------------------------------------------------------------------
+  test-base:
+    name: test-base (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install dev extras (no domain extras)
+        run: |
+          python -m pip install -U pip
+          python -m pip install -e '.[dev]'
+      - name: pytest tests/unit
+        run: pytest tests/unit -q
+
+  # ---------------------------------------------------------------------------
+  # test-demo-no-hardware: the load-bearing principle. Every algorithm must
+  # work on synthetic data. Stage 1 ships an asserting placeholder; Stage 3
+  # extends this to CRLB-bounded DOA assertions on the mock SDR.
+  # ---------------------------------------------------------------------------
+  test-demo-no-hardware:
+    name: test-demo-no-hardware
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install dev extras
+        run: |
+          python -m pip install -U pip
+          python -m pip install -e '.[dev]'
+      - name: pytest tests/demo_no_hardware
+        run: pytest tests/demo_no_hardware -q
+
+  # ---------------------------------------------------------------------------
+  # test-orchestrator: confirms graceful degradation when ai-orchestrator-client
+  # is absent AND that the [orchestrator] extra installs without breaking the
+  # core import. Stage 7 extends with real consumer-registration smoke tests.
+  # ---------------------------------------------------------------------------
+  test-orchestrator:
+    name: test-orchestrator (lazy-import)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install WITHOUT orchestrator extra
+        run: |
+          python -m pip install -U pip
+          python -m pip install -e '.[dev]'
+      - name: Import rfdf cleanly without ai-orchestrator-client
+        run: |
+          python -c "import rfdf; print('rfdf', rfdf.__version__, 'imports cleanly without orchestrator extra')"
+
+  # ---------------------------------------------------------------------------
+  # zero-domain-deps: enforces the hardware-agnostic principle. Base install
+  # must NOT pull in or auto-import any RF/ML/compute domain library.
+  # Audit-lesson load-bearing check.
+  # ---------------------------------------------------------------------------
+  zero-domain-deps:
+    name: zero-domain-deps
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install BASE only (no extras)
+        run: |
+          python -m pip install -U pip
+          python -m pip install -e .
+      - name: Assert no domain libs loaded after import rfdf
+        run: |
+          python - <<'PY'
+          import sys
+          import rfdf  # noqa: F401
+
+          banned = {
+              "uhd", "pyadi_iio", "SoapySDR",
+              "torch", "torchsig", "torchvision",
+              "onnx", "onnxruntime",
+              "runpod", "modal", "vastai", "sky",
+              "fastapi", "uvicorn",
+              "skrf", "PyNEC", "necpp",
+              "ai_orchestrator_client",
+          }
+          leaked = banned & set(sys.modules.keys())
+          assert not leaked, f"Domain libs leaked into base install: {leaked!r}"
+          print(f"rfdf {rfdf.__version__}: base install clean ({len(sys.modules)} modules loaded, none banned)")
+          PY
+
+  # ---------------------------------------------------------------------------
+  # coverage: upload to Codecov (tokenless via GitHub App for public OSS repos).
+  # Floor is fail_under=0 at Stage 1; rises per stage per ROADMAP.md.
+  # ---------------------------------------------------------------------------
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    needs: [test-base]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install dev extras
+        run: |
+          python -m pip install -U pip
+          python -m pip install -e '.[dev]'
+      - name: pytest --cov
+        run: pytest --cov --cov-report=xml --cov-report=term-missing
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
+          verbose: true
+
+  # ---------------------------------------------------------------------------
+  # readme-status-truthful: parses the "Status" line of README.md and asserts
+  # it references the highest git tag (or "scaffold" before the first tag).
+  # Direct mitigation of the orchestrator audit finding "README claimed Phase 0
+  # when Phase 3 was done".
+  # ---------------------------------------------------------------------------
+  readme-status-truthful:
+    name: readme-status-truthful
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Compare README status line with latest tag
+        run: |
+          set -euo pipefail
+          status_line=$(grep -E '^\*\*v[0-9]' README.md | head -1 || true)
+          status_line=${status_line:-$(grep -E 'v[0-9]+\.[0-9]+\.[0-9]+' README.md | grep -i status | head -1 || true)}
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          echo "README status snippet : ${status_line:-<none>}"
+          echo "Latest git tag        : ${latest_tag:-<none, pre-bootstrap>}"
+          if [ -z "$latest_tag" ]; then
+            echo "No tags yet: pre-bootstrap state acceptable. Skipping strict comparison."
+            exit 0
+          fi
+          if ! echo "$status_line" | grep -qF "$latest_tag"; then
+            echo "::error::README 'Status' line does not reference the latest git tag ($latest_tag)."
+            echo "Update the Status section of README.md to mention $latest_tag, or tag a new release that matches the README."
+            exit 1
+          fi
+          echo "OK: README status references $latest_tag"
+
+  # ---------------------------------------------------------------------------
+  # conventional-commits: enforce on PR title + commits.
+  # ---------------------------------------------------------------------------
+  conventional-commits:
+    name: conventional-commits
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: wagoid/commitlint-github-action@v6
+        with:
+          configFile: .commitlintrc.yml

@@ -1,0 +1,28 @@
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.0.1"
+version_files = [
+    "pyproject.toml:^version = ",
+    "src/rfdf/__init__.py:^__version__ = ",
+]
+tag_format = "v$version"
+update_changelog_on_bump = false
+major_version_zero = true
+
+# Allowed commit types (Conventional Commits).
+# Scopes are documented in CONTRIBUTING.md §6 and CLAUDE.md.
+# We use commitlint (CI) to enforce scope membership because commitizen's
+# config doesn't ship a scope-list enforcer; see .commitlintrc.yml.
+allowed_prefixes = [
+    "feat",
+    "fix",
+    "docs",
+    "style",
+    "refactor",
+    "perf",
+    "test",
+    "chore",
+    "build",
+    "ci",
+    "revert",
+]

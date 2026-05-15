@@ -1,0 +1,39 @@
+# Stage 1: security-only Dependabot configuration.
+# Renovate or full version-bump automation is a later concern.
+
+version: 2
+
+updates:
+  # Python dependencies — security advisories only.
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "security"
+    # Limit to security advisories to keep the noise floor low at Stage 1.
+    # We'll lift this filter when we add Renovate or move to scheduled
+    # version-bump cycles.
+    allow:
+      - dependency-type: "all"
+        update-type: "security"
+
+  # GitHub Actions — keep workflow actions current.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    groups:
+      actions:
+        patterns:
+          - "actions/*"
+          - "codecov/*"
+          - "wagoid/*"
+          - "pre-commit/*"
+          - "pypa/*"
