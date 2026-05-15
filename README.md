@@ -26,8 +26,13 @@ planner-dispatched GNU Radio flowgraphs, and ntfy alerts.
 
 ## Status
 
-**v0.0.1 — repository scaffold.** No functional features yet. See [ROADMAP.md](ROADMAP.md)
-for what's next (v0.0.2 ships the HAL).
+**v0.0.2 — HAL + mock backends (prior: v0.0.1 scaffold).** Four HAL Protocol
+classes (`SdrSource`, `RotatorController`, `GeometryController`,
+`ComputeBackend`) plus mock + SigMF file-replay backends, entry-point
+discovery, EIRP cap enforcement, `rfdf hw` / `rfdf config` CLI subcommands,
+and property-based contract tests. The platform is fully drivable
+end-to-end with zero physical hardware. See [ROADMAP.md](ROADMAP.md) for
+what's next (v0.0.3 ships DOA algorithms).
 
 ## Install (zero hardware path)
 
