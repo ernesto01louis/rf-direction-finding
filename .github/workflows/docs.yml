@@ -1,6 +1,13 @@
 # Docs build + deploy. PLACEHOLDER — mkdocs.yml ships in Stage 2/3 once there
 # is doc content beyond top-level meta files. The workflow is reviewable now;
-# it skips cleanly when mkdocs.yml is absent.
+# both jobs are NO-OPs until mkdocs.yml exists.
+#
+# Implementation notes:
+# - The `build` job's outputs.has_config signal is the single source of truth.
+#   The `deploy` job runs only when has_config == 'true' AND on main.
+# - Until Pages is enabled in the repo settings (Settings → Pages → "GitHub
+#   Actions" source), the deploy step would fail on the first real run; that
+#   activation happens when Stage 2/3 introduces real doc content.
 
 name: docs
 
@@ -21,15 +28,18 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      has_config: ${{ steps.check.outputs.has_config }}
     steps:
       - uses: actions/checkout@v4
       - name: Check for mkdocs config
         id: check
         run: |
           if [ -f mkdocs.yml ]; then
-            echo "has_config=true" >> $GITHUB_OUTPUT
+            echo "has_config=true" >> "$GITHUB_OUTPUT"
+            echo "mkdocs.yml present — site will build + deploy."
           else
-            echo "has_config=false" >> $GITHUB_OUTPUT
+            echo "has_config=false" >> "$GITHUB_OUTPUT"
             echo "::notice::mkdocs.yml not present — site build skipped (Stage 1 placeholder)."
           fi
       - uses: actions/setup-python@v5
@@ -53,17 +63,14 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    # Gate on the explicit signal from `build` — NOT on `needs.build.result`,
+    # because `result == 'success'` is also true when the build job did nothing
+    # but exit cleanly (which is what happens when mkdocs.yml is absent).
+    if: needs.build.outputs.has_config == 'true' && github.ref == 'refs/heads/main'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Check artifact
-        id: check
-        run: |
-          # Skip deploy if build skipped (no mkdocs.yml yet)
-          echo "skip=${{ needs.build.result != 'success' }}" >> $GITHUB_OUTPUT
       - name: Deploy to GitHub Pages
-        if: steps.check.outputs.skip != 'true'
         id: deployment
         uses: actions/deploy-pages@v4
