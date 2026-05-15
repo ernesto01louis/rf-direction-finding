@@ -1,0 +1,69 @@
+# Docs build + deploy. PLACEHOLDER — mkdocs.yml ships in Stage 2/3 once there
+# is doc content beyond top-level meta files. The workflow is reviewable now;
+# it skips cleanly when mkdocs.yml is absent.
+
+name: docs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for mkdocs config
+        id: check
+        run: |
+          if [ -f mkdocs.yml ]; then
+            echo "has_config=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_config=false" >> $GITHUB_OUTPUT
+            echo "::notice::mkdocs.yml not present — site build skipped (Stage 1 placeholder)."
+          fi
+      - uses: actions/setup-python@v5
+        if: steps.check.outputs.has_config == 'true'
+        with:
+          python-version: "3.11"
+      - name: Install docs extras
+        if: steps.check.outputs.has_config == 'true'
+        run: |
+          python -m pip install -U pip
+          python -m pip install -e '.[docs]'
+      - name: Build site
+        if: steps.check.outputs.has_config == 'true'
+        run: mkdocs build --strict
+      - name: Upload pages artifact
+        if: steps.check.outputs.has_config == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check artifact
+        id: check
+        run: |
+          # Skip deploy if build skipped (no mkdocs.yml yet)
+          echo "skip=${{ needs.build.result != 'success' }}" >> $GITHUB_OUTPUT
+      - name: Deploy to GitHub Pages
+        if: steps.check.outputs.skip != 'true'
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,53 @@
+# commitlint config — used by wagoid/commitlint-github-action@v6 in ci.yml.
+# Locks both type AND scope per 00-CONTEXT §10 and CLAUDE.md.
+extends:
+  - "@commitlint/config-conventional"
+
+rules:
+  type-enum:
+    - 2  # error
+    - "always"
+    - - feat
+      - fix
+      - docs
+      - style
+      - refactor
+      - perf
+      - test
+      - chore
+      - build
+      - ci
+      - revert
+
+  scope-enum:
+    - 2  # error
+    - "always"
+    - - hal
+      - dsp
+      - ml
+      - backends
+      - capture
+      - cli
+      - api
+      - orchestrator
+      - config
+      - docs
+      - ci
+      - tests
+      - tools
+      - examples
+      - release
+      - deps
+      - scaffold   # Stage 1 only — initial repository setup
+
+  scope-empty:
+    - 1  # warning (scope is encouraged but not strictly required)
+    - "never"
+
+  subject-case:
+    - 0  # disabled — allow any case in the subject line
+
+  body-max-line-length:
+    - 1  # warning
+    - "always"
+    - 100

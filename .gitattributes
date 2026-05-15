@@ -1,0 +1,33 @@
+# Default to LF line endings for all text files
+* text=auto eol=lf
+
+# Python sources
+*.py text eol=lf diff=python
+*.pyi text eol=lf diff=python
+
+# Config files
+*.toml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.cfg text eol=lf
+*.ini text eol=lf
+Makefile text eol=lf
+
+# Markdown
+*.md text eol=lf
+
+# SigMF — metadata is JSON; data is binary
+*.sigmf-meta text eol=lf linguist-language=JSON
+*.sigmf-data binary
+*.sigmf binary
+
+# Compiled artifacts are binary
+*.hef binary
+*.onnx binary
+*.tflite binary
+*.mlmodel binary
+
+# Exclude examples + notebooks from language detection skew
+examples/**/*.ipynb linguist-vendored
+docs/**/*.html linguist-documentation

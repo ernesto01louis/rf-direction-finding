@@ -1,0 +1,20 @@
+# Defense-in-depth: run pre-commit hooks in CI for the rare case someone
+# bypasses local hooks with --no-verify.
+
+name: pre-commit
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: pre-commit/action@v3.0.1

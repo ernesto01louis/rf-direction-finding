@@ -1,0 +1,90 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.eggs/
+*.egg-info
+build/
+dist/
+wheels/
+*.whl
+sdist/
+develop-eggs/
+parts/
+var/
+share/python-wheels/
+*.installed.cfg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Test + coverage artifacts
+.pytest_cache/
+.tox/
+.nox/
+.cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Type-checker caches
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+dmypy.json
+
+# Secrets (NEVER commit .env)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Notebook artifacts
+.ipynb_checkpoints/
+
+# rfdf user data (do not commit local captures / models / calibrations)
+captures/
+models/
+calibrations/
+bundles/
+datasets/
+
+# Docs build
+site/
+.mkdocs.cache/
+
+# Backend / vendor artifacts (Stage 5+)
+*.sigmf-data
+*.sigmf-meta
+*.sigmf
+*.hef
+*.onnx
+*.tflite
+*.mlmodel

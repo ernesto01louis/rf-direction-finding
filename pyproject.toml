@@ -1,0 +1,157 @@
+[project]
+name = "rfdf"
+version = "0.0.1"
+description = "Hardware-agnostic RF direction finding, signal classification, and phased-array research platform"
+authors = [{name = "Louis", email = "louis_ernesto@aol.com"}]
+license = {text = "Apache-2.0"}
+readme = "README.md"
+requires-python = ">=3.11"
+keywords = ["rf", "sdr", "doa", "direction-finding", "signal-classification", "phased-array", "research"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.13",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "typer>=0.12",
+    "rich>=13.7",
+    "sigmf>=1.2",
+    "structlog>=24",
+    "platformdirs>=4",
+]
+
+[project.optional-dependencies]
+# --- SDR backends ---
+sdr-uhd = ["uhd>=4.7"]
+sdr-pluto = ["pyadi-iio>=0.0.18"]
+sdr-soapy = ["SoapySDR>=0.8"]
+# --- Rotator backends ---
+rotator-hamlib = ["hamlib-py>=4.5"]
+# --- ML ---
+ml = ["torch>=2.5", "torchvision>=0.20", "torchsig>=2.0", "scikit-learn>=1.5"]
+ml-onnx = ["onnx>=1.17", "onnxruntime>=1.20"]
+ml-hailo = []  # vendor SDK installed externally; no PyPI package
+# --- Compute backends ---
+compute-runpod = ["runpod>=1.7"]
+compute-modal = ["modal>=0.65"]
+compute-vastai = ["vastai>=0.2"]
+compute-skypilot = ["skypilot[aws,gcp]>=0.7"]
+# --- Orchestrator integration (optional) ---
+orchestrator = ["ai-orchestrator-client>=0.1.0a0,<0.2"]
+# --- API + web ---
+api = ["fastapi>=0.115", "uvicorn[standard]>=0.32", "websockets>=13"]
+# --- Antenna modelling ---
+antenna = ["scikit-rf>=1.2", "necpp>=1.7", "PyNEC>=1.7"]
+# --- Dev / tooling ---
+dev = [
+    "pytest>=8",
+    "pytest-cov>=5",
+    "pytest-asyncio>=0.24",
+    "hypothesis>=6",
+    "ruff>=0.7",
+    "mypy>=1.13",
+    "pre-commit>=4",
+    "commitizen>=3",
+    "types-PyYAML",
+]
+docs = ["mkdocs-material>=9.5", "mkdocstrings[python]>=0.27"]
+# --- Convenience meta-extras ---
+all-hardware = ["rfdf[sdr-uhd,sdr-pluto,sdr-soapy,rotator-hamlib]"]
+all-compute = ["rfdf[compute-runpod,compute-modal,compute-vastai,compute-skypilot]"]
+all = ["rfdf[ml,ml-onnx,api,antenna,all-hardware,all-compute,orchestrator]"]
+
+[project.scripts]
+rfdf = "rfdf.cli.main:app"
+
+[project.urls]
+Homepage = "https://github.com/ernesto01louis/rf-direction-finding"
+Documentation = "https://github.com/ernesto01louis/rf-direction-finding"
+Issues = "https://github.com/ernesto01louis/rf-direction-finding/issues"
+Changelog = "https://github.com/ernesto01louis/rf-direction-finding/blob/main/CHANGELOG.md"
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rfdf"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/README.md",
+    "/LICENSE",
+    "/CHANGELOG.md",
+]
+
+# ---------------------------------------------------------------------------
+# Ruff (lint + format)
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = ["examples/**/*.ipynb"]
+
+[tool.ruff.lint]
+extend-select = ["I", "B", "UP", "SIM", "RUF", "D"]
+extend-ignore = ["D104", "D107"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["D"]
+
+# ---------------------------------------------------------------------------
+# mypy
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+strict = true
+plugins = ["pydantic.mypy"]
+warn_unreachable = true
+files = ["src/rfdf"]
+
+[[tool.mypy.overrides]]
+module = ["tests.*", "examples.*"]
+ignore_errors = true
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+    "hardware: requires physical RF hardware (skipped by default)",
+    "slow: takes more than 10 seconds",
+    "integration: requires multiple components or external services",
+    "gpu: requires a CUDA-capable GPU",
+]
+
+# ---------------------------------------------------------------------------
+# coverage
+# ---------------------------------------------------------------------------
+[tool.coverage.run]
+source = ["src/rfdf"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 0  # raised in later stages; floor MUST rise per stage
+show_missing = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
