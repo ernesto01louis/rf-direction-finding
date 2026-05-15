@@ -64,6 +64,8 @@ dev = [
     "types-PyYAML",
 ]
 docs = ["mkdocs-material>=9.5", "mkdocstrings[python]>=0.27"]
+# --- Test-only cross-validation (DOA estimators checked vs an independent library) ---
+crosscheck = ["pyargus>=1.0", "matplotlib>=3.5"]
 # --- Convenience meta-extras ---
 all-hardware = ["rfdf[sdr-uhd,sdr-pluto,sdr-soapy,rotator-hamlib]"]
 all-compute = ["rfdf[compute-runpod,compute-modal,compute-vastai,compute-skypilot]"]
@@ -146,6 +148,11 @@ ignore_errors = true
 # scikit-rf (read lazily in rfdf.dsp.calibration) ships no type stubs.
 [[tool.mypy.overrides]]
 module = ["skrf.*"]
+ignore_missing_imports = true
+
+# SciPy ships no type stubs.
+[[tool.mypy.overrides]]
+module = ["scipy.*"]
 ignore_missing_imports = true
 
 # ---------------------------------------------------------------------------
