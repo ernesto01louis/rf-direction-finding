@@ -8,9 +8,8 @@ Replaces the Stage 1 placeholder. Wires the four HAL Protocols end-to-end:
 * :class:`LocalCompute` for a no-op job
 
 The smoke test runs a 0.05 s capture (100 000 samples at 2 Msps), asserts
-shape / dtype / finite-ness on the synthesised IQ, and runs a stub DOA call
-that returns ``np.zeros(3)``. Stage 3 replaces the stub with real MUSIC and
-asserts CRLB-bounded accuracy on the same scenario.
+shape / dtype / finite-ness on the synthesised IQ, and runs MUSIC on the
+streamed block, asserting it recovers the three emitter bearings.
 
 **This test MUST stay green for the rest of the project's life.** It's the
 load-bearing principle ("every algorithm must work on synthetic data") made
@@ -34,12 +33,10 @@ from rfdf.backends.sdr.mock import (
 from rfdf.backends.sdr.mock import (
     create as create_mock_sdr,
 )
+from rfdf.dsp.covariance import sample_covariance
+from rfdf.dsp.doa.music import music
+from rfdf.dsp.steering import build_manifold
 from rfdf.hal import SdrConfig
-
-
-def _stub_doa(_iq: np.ndarray) -> np.ndarray:
-    """Placeholder DOA estimator. Stage 3 replaces with real MUSIC."""
-    return np.zeros(3, dtype=np.float64)
 
 
 def test_demo_no_hardware_pipeline(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -61,12 +58,14 @@ def test_demo_no_hardware_pipeline(monkeypatch: pytest.MonkeyPatch, tmp_path: Pa
     assert az == pytest.approx(0.0)
     assert el == pytest.approx(0.0)
 
-    # 3. SDR: three emitters at (30, 0), (90, 10), (-45, 5) degrees.
+    # 3. SDR: three in-plane CW emitters at azimuths 30, 90, -45 degrees. Each has a
+    #    distinct frequency offset so they are temporally uncorrelated — a rank-3
+    #    covariance MUSIC can resolve. Elevation is 0 (the cross is a planar array).
     scenario = MockSdrScenario(
         emitters=[
             CWEmitter(azimuth_deg=30.0, elevation_deg=0.0, power_dbm=0.0),
-            CWEmitter(azimuth_deg=90.0, elevation_deg=10.0, power_dbm=0.0, freq_offset_hz=10e3),
-            CWEmitter(azimuth_deg=-45.0, elevation_deg=5.0, power_dbm=0.0, freq_offset_hz=-15e3),
+            CWEmitter(azimuth_deg=90.0, elevation_deg=0.0, power_dbm=0.0, freq_offset_hz=10e3),
+            CWEmitter(azimuth_deg=-45.0, elevation_deg=0.0, power_dbm=0.0, freq_offset_hz=-15e3),
         ],
         snr_db=20.0,
     )
@@ -95,10 +94,15 @@ def test_demo_no_hardware_pipeline(monkeypatch: pytest.MonkeyPatch, tmp_path: Pa
     assert iq.dtype == np.complex64
     assert np.all(np.isfinite(iq))
 
-    # 6. Stub DOA over the streamed IQ — real MUSIC arrives in Stage 3.
-    estimates = _stub_doa(iq)
-    assert estimates.shape == (3,)
-    assert np.all(estimates == 0.0)
+    # 6. Real MUSIC over the streamed IQ — the Stage 3 upgrade of the load-bearing
+    #    gate. MUSIC must recover all three emitter azimuths from synthetic data.
+    positions = asyncio.run(geometry.positions())
+    covariance = sample_covariance(iq)
+    manifold = build_manifold(positions, np.arange(-180.0, 180.0, 0.5), np.array([0.0]), 868e6)
+    estimate = music(covariance, manifold, num_signals=3)
+    recovered = sorted(estimate.azimuth_deg)
+    for expected, actual in zip([-45.0, 30.0, 90.0], recovered, strict=True):
+        assert abs(actual - expected) <= 2.0, f"MUSIC recovered {actual}, expected {expected}"
 
 
 def test_demo_no_hardware_geometry_change_changes_iq(
