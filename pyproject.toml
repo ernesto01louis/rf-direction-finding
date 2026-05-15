@@ -1,6 +1,6 @@
 [project]
 name = "rfdf"
-version = "0.0.1"
+version = "0.0.2"
 description = "Hardware-agnostic RF direction finding, signal classification, and phased-array research platform"
 authors = [{name = "Louis", email = "louis_ernesto@aol.com"}]
 license = {text = "Apache-2.0"}
@@ -71,6 +71,23 @@ all = ["rfdf[ml,ml-onnx,api,antenna,all-hardware,all-compute,orchestrator]"]
 
 [project.scripts]
 rfdf = "rfdf.cli.main:app"
+
+# Backend discovery (one entry-point per HAL Protocol group). Backends ship in
+# the base package because they only depend on numpy + sigmf (also base deps);
+# vendor SDKs (uhd, hamlib, runpod, …) remain behind optional extras.
+[project.entry-points."rfdf.backends.sdr"]
+mock = "rfdf.backends.sdr.mock:create"
+file-replay = "rfdf.backends.sdr.file_replay:create"
+
+[project.entry-points."rfdf.backends.rotator"]
+mock = "rfdf.backends.rotator.mock:create"
+
+[project.entry-points."rfdf.backends.geometry"]
+static = "rfdf.backends.geometry.static:create"
+mock-morph = "rfdf.backends.geometry.mock_morph:create"
+
+[project.entry-points."rfdf.backends.compute"]
+local = "rfdf.backends.compute.local:create"
 
 [project.urls]
 Homepage = "https://github.com/ernesto01louis/rf-direction-finding"
@@ -148,7 +165,7 @@ source = ["src/rfdf"]
 branch = true
 
 [tool.coverage.report]
-fail_under = 0  # raised in later stages; floor MUST rise per stage
+fail_under = 70  # Stage 2 raises from 0; Stage 3 ratchets to 80.
 show_missing = true
 exclude_also = [
     "if TYPE_CHECKING:",

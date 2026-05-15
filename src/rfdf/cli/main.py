@@ -1,10 +1,17 @@
-"""rfdf CLI entry point (Stage 1 minimal — only ``--version`` is wired)."""
+"""rfdf CLI entry point.
+
+Stage 2 wires ``rfdf hw {list-backends, selftest}`` and ``rfdf config
+{show, validate}`` subcommands. Subsequent stages add the DSP / ML / hardware
+subcommands documented in ``src/rfdf/cli/__init__.py``.
+"""
 
 from __future__ import annotations
 
 import typer
 
 from rfdf import __version__
+from rfdf.cli.config_cmd import config_app
+from rfdf.cli.hw import hw_app
 
 app = typer.Typer(
     name="rfdf",
@@ -12,6 +19,8 @@ app = typer.Typer(
     no_args_is_help=True,
     add_completion=False,
 )
+app.add_typer(hw_app, name="hw")
+app.add_typer(config_app, name="config")
 
 
 def _version_callback(value: bool) -> None:
@@ -32,7 +41,8 @@ def main(
 ) -> None:
     """Entry point for the ``rfdf`` command-line interface.
 
-    Subcommands land in later stages. Run ``rfdf --version`` for the installed version.
+    Run ``rfdf --version`` for the installed version, or ``rfdf <subcommand>
+    --help`` for subcommand-specific help.
     """
     _ = version  # parameter consumed by the callback
 

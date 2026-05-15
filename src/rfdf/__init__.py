@@ -13,6 +13,6 @@ from importlib.metadata import PackageNotFoundError, version
 try:
     __version__ = version("rfdf")
 except PackageNotFoundError:  # pragma: no cover - editable install before metadata is wired
-    __version__ = "0.0.1"
+    __version__ = "0.0.2"
 
 __all__ = ["__version__"]

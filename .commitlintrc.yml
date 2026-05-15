@@ -23,6 +23,7 @@ rules:
     - 2  # error
     - "always"
     - - hal
+      - core         # cross-cutting policy/plumbing (src/rfdf/core/), added Stage 2
       - dsp
       - ml
       - backends

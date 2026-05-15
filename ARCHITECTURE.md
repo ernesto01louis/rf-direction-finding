@@ -23,17 +23,32 @@ algorithm layer relies on; concrete backends are interchangeable.
 
 ## 2. HAL contracts
 
-The HAL is implemented in `src/rfdf/hal/` (lands in Stage 2). Four Protocol classes:
+The HAL is implemented in `src/rfdf/hal/` (Stage 2, `v0.0.2`). Four Protocol
+classes; see [`docs/hal.md`](docs/hal.md) for the full signatures, capability
+properties, and usage examples.
 
-| Protocol | Concern | Reference backends |
-|---|---|---|
-| `SdrSource` | IQ capture, tuning, calibration | mock, file-replay (SigMF), b210, RTL-SDR (contrib), KrakenSDR (contrib) |
-| `RotatorController` | Mechanical AZ/EL pointing | mock, AntRunner (GRBL_ESP32), hamlib `rotctld`, SPID |
-| `GeometryController` | Per-antenna 3D position | static, mock-morph, grbl-linear (motorized rails) |
-| `ComputeBackend` | ML / batch job dispatch | local, runpod, vastai, modal, skypilot |
+| Protocol | Concern | Stage 2 backends | Future backends |
+|---|---|---|---|
+| `SdrSource` | IQ capture, tuning, calibration | `mock`, `file-replay` (SigMF) | b210 (Stage 5), RTL-SDR (contrib), KrakenSDR (contrib) |
+| `RotatorController` | Mechanical AZ/EL pointing | `mock` | AntRunner (GRBL_ESP32), hamlib `rotctld`, SPID (Stage 5) |
+| `GeometryController` | Per-antenna 3D position | `static`, `mock-morph` | grbl-linear motorized rails (Stage 5) |
+| `ComputeBackend` | ML / batch job dispatch | `local` | runpod, vastai, modal, skypilot (Stage 4) |
 
-Stage 2 ships the Protocol definitions plus mock + file-replay implementations.
-Stage 5 wires the real hardware backends against the same contracts.
+Stage 2 deviations from the Stage 2 PDF (documented in [`STAGE-2-OUTPUTS.md`
+§4](STAGE-2-OUTPUTS.md)):
+
+* `RotatorController.position()` and `GeometryController.positions()` are
+  regular `async def` methods, not `@property async def` (the latter isn't
+  valid Python).
+* `RotatorController.stream_position()` added so the mock backend's slew-
+  progress streaming stays contract-conformant.
+* `Recording.metadata: dict[str, Any]` added for SigMF spec-extension
+  passthrough.
+* `GeometryController.calibrate()` added so morphing arrays can report rail-
+  zero calibration; static backends return `ok=True` with a no-op message.
+
+Cross-cutting policy lives in `src/rfdf/core/` (Stage 2 first inhabitant is
+`eirp.py` — see [`docs/configuration.md`](docs/configuration.md#eirp-cap-policy)).
 
 ## 3. Backend discovery
 
