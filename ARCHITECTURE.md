@@ -122,3 +122,24 @@ integration classes raise `OrchestratorNotAvailableError` if `ai-orchestrator-cl
 is not installed. See [docs/orchestrator/](docs/) (lands in Stage 7) for the consumer
 registration pattern, evidence-bundle schema, and the standalone-vs-orchestrator
 comparison.
+
+## 9. DSP / algorithm layer
+
+`rfdf.dsp` (Stage 3) is the pure-NumPy/SciPy direction-of-arrival layer. It operates on
+covariance matrices and antenna-position arrays and never imports a hardware backend.
+
+- **Steering & covariance** — `dsp.steering` is the single definition of the `exp(-j)`
+  array-manifold convention; `dsp.covariance` estimates and regularises the sample
+  covariance; `dsp.geometry_presets` builds ULA / planar-cross geometries.
+- **Estimators** — `dsp.doa` holds Bartlett, MVDR, MUSIC, Root-MUSIC, ESPRIT, Unitary
+  ESPRIT, 2-D MUSIC, and incoherent / CSSM wideband MUSIC. `dsp.coherent` decorrelates
+  coherent sources; `dsp.doa.synthetic_aperture` fuses multi-station captures into a
+  virtual aperture.
+- **Verification** — `dsp.crlb` computes the Cramer-Rao bound; every estimator has a
+  CRLB-bounded test. `dsp.model_order` (AIC / MDL / SORTE) estimates the source count.
+- **Orchestration** — `dsp.doa.Doa` wires the HAL to the algorithms; the `rfdf doa` CLI
+  exposes `run` / `calibrate` / `benchmark` / `morph-capture`.
+
+The async HAL hands IQ to this sync layer at the boundary in section 6. See
+[docs/doa-algorithms.md](docs/doa-algorithms.md), [docs/calibration.md](docs/calibration.md),
+[docs/synthetic-aperture.md](docs/synthetic-aperture.md), and [docs/crlb.md](docs/crlb.md).

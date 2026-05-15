@@ -34,9 +34,22 @@ from rfdf.backends.sdr.mock import (
     create as create_mock_sdr,
 )
 from rfdf.dsp.covariance import sample_covariance
+from rfdf.dsp.crlb import compute_crlb
+from rfdf.dsp.doa.bartlett import bartlett
 from rfdf.dsp.doa.music import music
+from rfdf.dsp.doa.mvdr import mvdr
+from rfdf.dsp.geometry_presets import planar_cross
 from rfdf.dsp.steering import build_manifold
 from rfdf.hal import SdrConfig
+
+
+async def _first_block(sdr: object) -> np.ndarray:  # type: ignore[type-arg]
+    """Start ``sdr``, return the first StreamBlock's IQ as complex128, then stop."""
+    await sdr.start()  # type: ignore[attr-defined]
+    async for block in sdr.stream():  # type: ignore[attr-defined]
+        await sdr.stop()  # type: ignore[attr-defined]
+        return block.iq.astype(np.complex128)
+    raise AssertionError("no block")
 
 
 def test_demo_no_hardware_pipeline(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -164,3 +177,43 @@ def test_demo_no_hardware_geometry_change_changes_iq(
     assert not np.allclose(iq_tight, iq_loose), (
         "geometry change did not affect IQ — array-factor math is broken"
     )
+
+
+def test_demo_no_hardware_doa_within_crlb(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Bartlett, MVDR, and MUSIC all estimate DOA within the Cramer-Rao bound.
+
+    The mathematical-integrity gate: each estimator's RMSE over a fixed-seed
+    Monte-Carlo sweep on the mock SDR stays within 3*sqrt(CRLB). Proven on
+    synthetic data — no hardware.
+    """
+    monkeypatch.chdir(tmp_path)
+    positions = planar_cross(0.17)
+    truth_az = 35.0
+    freq_hz = 868e6
+    crlb = compute_crlb(
+        positions, freq_hz=freq_hz, snr_db=20.0, snapshots=8192, direction_deg=truth_az
+    )
+    manifold = build_manifold(positions, np.arange(-180.0, 180.0, 0.1), np.array([0.0]), freq_hz)
+    cfg = SdrConfig(center_freq_hz=freq_hz, sample_rate_hz=2e6, rx_gain_db=30.0)
+
+    for estimator in (bartlett, mvdr, music):
+        errors = []
+        for seed in range(15):
+            scenario = MockSdrScenario(
+                emitters=[CWEmitter(azimuth_deg=truth_az, elevation_deg=0.0, power_dbm=0.0)],
+                snr_db=20.0,
+            )
+            sdr = create_mock_sdr(
+                geometry=create_static_geometry(antennas=positions.tolist()),
+                scenario=scenario,
+                block_samples=8192,
+                seed=seed,
+            )
+            asyncio.run(sdr.configure(cfg))
+            iq = asyncio.run(_first_block(sdr))
+            estimate = estimator(sample_covariance(iq), manifold, num_signals=1)
+            errors.append(estimate.azimuth_deg[0] - truth_az)
+        rmse = float(np.std(errors))
+        assert rmse < 3.0 * np.sqrt(crlb), (
+            f"{estimator.__name__} RMSE {rmse:.4f} exceeds 3*sqrt(CRLB) {3.0 * np.sqrt(crlb):.4f}"
+        )
