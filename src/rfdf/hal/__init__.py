@@ -16,12 +16,14 @@ and are imported lazily by the discovery helper, preserving the
 """
 
 from rfdf.hal.compute import ComputeBackend, ComputeJob, CostEstimate, JobHandle
+from rfdf.hal.discovery import BACKEND_GROUPS, discover_backends, list_backends, load_backend
 from rfdf.hal.geometry import GeometryController
 from rfdf.hal.rotator import RotatorController
 from rfdf.hal.sdr import Recording, SdrConfig, SdrSource, StreamBlock
 from rfdf.hal.types import BackendLoadError, CalibrationReport, JobStatus
 
 __all__ = [
+    "BACKEND_GROUPS",
     "BackendLoadError",
     "CalibrationReport",
     "ComputeBackend",
@@ -35,4 +37,7 @@ __all__ = [
     "SdrConfig",
     "SdrSource",
     "StreamBlock",
+    "discover_backends",
+    "list_backends",
+    "load_backend",
 ]
