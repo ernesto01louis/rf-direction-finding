@@ -13,6 +13,30 @@ recorded here per the release.
 
 ### Added
 
+- **PR6 — RunPod cloud compute backend** (`rfdf[compute-runpod]`):
+  - `rfdf.backends.compute.runpod` — `RunPodCompute` implementing the async
+    `ComputeBackend` Protocol against the `runpod` Python SDK.  Auth via
+    `RUNPOD_API_KEY` environment variable.  Submits jobs as RunPod pods with
+    GPU selection from `ComputeJob.gpu_model` / `gpu_min_vram_gb`.
+    `cost_estimate` uses a static `_RATES` table with the formula
+    `estimated = rate × 1.5 × runtime_h × gpu_units` (low 1.0×, high 2.0×).
+  - **Lazy-SDK-import pattern** — the `runpod` module is imported only inside
+    methods that call the SDK, never at module top level.  `create()` factory
+    is import-safe; `rfdf compute list` can enumerate the backend without the
+    SDK installed.
+  - `rfdf.backends.compute._remote_storage` — `RemoteStorage`
+    `@runtime_checkable` Protocol plus two implementations:
+    `LocalFilesystemStorage` (pure stdlib, good default and test double) and
+    `RunpodVolumeStorage` (RunPod Network Volume; lazy `runpod` import — a
+    partial implementation: `put` records keys in-process and `get` raises
+    `NotImplementedError`, since real volume transfer needs a live pod's SSH
+    endpoint).
+  - `runpod` entry-point registered under `rfdf.backends.compute`.
+  - 49 unit tests (`test_compute_runpod.py` + `test_remote_storage.py`) with
+    the SDK fully mocked — no real network calls.
+  - `tests/integration/test_compute_runpod_live.py` — real connectivity smoke
+    test, skipped unless `RUNPOD_API_KEY` is set.
+
 - `ml-coreml` (`coremltools`) and `ml-tflite` (`ai-edge-torch`) optional-dependency
   extras, completing the Stage 4 ML export surface.
 - `coverage-ml` CI job — a dedicated 75% coverage floor for `src/rfdf/ml/` and the
