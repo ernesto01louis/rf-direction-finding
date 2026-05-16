@@ -69,12 +69,15 @@ Thumbs.db
 # Notebook artifacts
 .ipynb_checkpoints/
 
-# rfdf user data (do not commit local captures / models / calibrations)
-captures/
-models/
-calibrations/
-bundles/
-datasets/
+# rfdf user data (do not commit local captures / models / calibrations).
+# Anchored with a leading slash so they match only top-level user-data
+# directories, NOT source packages like src/rfdf/ml/datasets/ or
+# src/rfdf/ml/models/.
+/captures/
+/models/
+/calibrations/
+/bundles/
+/datasets/
 
 # Docs build
 site/
