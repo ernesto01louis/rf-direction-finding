@@ -2,7 +2,7 @@
 
 A ``RemoteStorage`` provides a key-value store for datasets and artifacts that
 persist between compute runs so that large files are not re-uploaded with every
-job submission.  Three implementations ship in-tree:
+job submission.  Four implementations ship in-tree:
 
 * :class:`LocalFilesystemStorage` — backed by a plain directory on disk; zero
   dependencies, fully testable without any provider account.
@@ -10,6 +10,8 @@ job submission.  Three implementations ship in-tree:
   ``runpod`` import so the module is importable without the SDK.
 * :class:`ModalVolumeStorage` — backed by a Modal Volume; lazy ``modal`` import
   so the module is importable without the SDK.
+* :class:`VastAiStorage` — backed by Vast.ai per-instance disk; lazy
+  ``vastai`` import so the module is importable without the SDK.
 
 All satisfy the :class:`RemoteStorage` ``@runtime_checkable`` Protocol.
 """
@@ -482,9 +484,177 @@ class ModalVolumeStorage:
         return sorted(k for k in self._uploaded_keys if k.startswith(prefix))
 
 
+# ---------------------------------------------------------------------------
+# VastAiStorage
+# ---------------------------------------------------------------------------
+
+
+def _require_vastai() -> object:
+    """Import and return the ``vastai`` module, raising a clear error if absent.
+
+    Returns:
+        The ``vastai`` module object.
+
+    Raises:
+        ImportError: With install instructions if ``vastai`` is not installed.
+    """
+    try:
+        import vastai  # lazy import — intentional
+
+        return vastai
+    except ImportError as exc:
+        raise ImportError(
+            "VastAiStorage requires the vastai SDK; "
+            "install it with:  pip install rfdf[compute-vastai]"
+        ) from exc
+
+
+class VastAiStorage:
+    """Implements :class:`RemoteStorage` via Vast.ai per-instance disk.
+
+    Vast.ai instances have local disk attached at creation time (the ``disk``
+    parameter, in GiB).  Unlike RunPod Network Volumes or Modal Volumes, this
+    disk is **not shared** across instances — it is ephemeral to a single
+    instance booking.  If a job writes artifacts to instance-local disk and
+    the instance is destroyed before :meth:`fetch_artifacts` can retrieve them,
+    the data is lost.
+
+    .. note::
+        This is a **partial implementation**.  Real file transfer to/from a
+        Vast.ai instance requires SSH access via the instance's public IP and
+        SSH port (the Vast.ai ``vastai copy`` command or ``rsync``/``scp``
+        against the instance endpoint), which is unavailable without a live
+        Vast.ai account.  :meth:`put` validates the source file and records the
+        key in-process so :meth:`exists` / :meth:`list` work within a session;
+        :meth:`get` raises :class:`NotImplementedError`.  Use
+        :class:`LocalFilesystemStorage` for real storage without a Vast.ai
+        account, or extend these methods with SCP/rsync against a live instance
+        SSH endpoint.
+
+    Attributes:
+        instance_disk_gb: Local disk size in GiB allocated to each instance.
+        mount_path: Conventional path under which files are stored on the
+            instance disk.
+    """
+
+    def __init__(
+        self,
+        instance_disk_gb: float = 10.0,
+        mount_path: str = "/workspace",
+    ) -> None:
+        """Initialise the storage backend.
+
+        Args:
+            instance_disk_gb: Local disk size in GiB to allocate to each
+                instance (passed as the ``disk`` parameter to
+                ``create_instance``).  Defaults to 10 GiB.
+            mount_path: Conventional working path on the instance disk.
+                Defaults to ``"/workspace"``.
+        """
+        self.instance_disk_gb = instance_disk_gb
+        self.mount_path = mount_path
+        # Key → virtual path mapping persisted in-memory for this session.
+        # In production the actual file layout on the instance disk is the
+        # source of truth; this cache makes exists() / list() cheap for the
+        # common case where the same process uploaded the keys.
+        self._uploaded_keys: set[str] = set()
+
+    @property
+    def name(self) -> str:
+        """Always ``"vastai-instance-disk"``."""
+        return "vastai-instance-disk"
+
+    async def put(self, local_path: Path, remote_key: str) -> str:
+        """Register *remote_key* for *local_path* on the Vast.ai instance disk.
+
+        Partial implementation (see the class note): real file transfer to a
+        Vast.ai instance disk needs SSH access to the instance, which is
+        unavailable without a live Vast.ai account.  ``put`` validates the
+        source file and records the key in-process so :meth:`exists` /
+        :meth:`list` work within a session; operators extend it with an SCP
+        or ``vastai copy`` transfer against a running instance.
+
+        Args:
+            local_path: Source file on the local filesystem.
+            remote_key: Destination key on the instance disk (relative path).
+
+        Returns:
+            The *remote_key* unchanged.
+
+        Raises:
+            FileNotFoundError: If *local_path* does not exist.
+            ImportError: If the ``vastai`` SDK is not installed.
+        """
+        _require_vastai()
+        if not local_path.exists():
+            raise FileNotFoundError(f"VastAiStorage.put: {local_path} not found")
+        self._uploaded_keys.add(remote_key)
+        return remote_key
+
+    async def get(self, remote_key: str, local_path: Path) -> None:
+        """Download the object at *remote_key* from the Vast.ai instance disk.
+
+        Args:
+            remote_key: Key of the object to retrieve.
+            local_path: Destination path; parent directory must exist.
+
+        Raises:
+            KeyError: If *remote_key* is not known to this storage instance.
+            NotImplementedError: Always — downloading from a Vast.ai instance
+                disk requires SSH access to the running instance.  Operators
+                implement this via ``vastai copy <instance_id>:/path /local/path``
+                or ``scp -P <port> root@<ip>:<path> <local_path>``.
+            ImportError: If the ``vastai`` SDK is not installed.
+        """
+        _require_vastai()
+        if remote_key not in self._uploaded_keys:
+            raise KeyError(f"VastAiStorage: key {remote_key!r} not found")
+        # In a full implementation this would use `vastai copy` or SCP:
+        #
+        #   vastai copy <instance_id>:<mount_path>/<remote_key> <local_path>
+        #   # or via SSH:
+        #   scp -P <ssh_port> root@<ip>:<mount_path>/<remote_key> <local_path>
+        #
+        # This requires a running instance and active Vast.ai credentials.
+        raise NotImplementedError(
+            "VastAiStorage.get: file download from a Vast.ai instance disk "
+            "requires SSH access to the instance; use `vastai copy "
+            "<instance_id>:/path /local/path` or SCP/rsync against the "
+            "instance's SSH endpoint."
+        )
+
+    async def exists(self, remote_key: str) -> bool:
+        """Return ``True`` if *remote_key* was uploaded by this storage instance.
+
+        Args:
+            remote_key: Key to probe.
+
+        Raises:
+            ImportError: If the ``vastai`` SDK is not installed.
+        """
+        _require_vastai()
+        return remote_key in self._uploaded_keys
+
+    async def list(self, prefix: str = "") -> list[str]:
+        """Return sorted known keys that start with *prefix*.
+
+        Args:
+            prefix: Optional filter; empty string returns all known keys.
+
+        Returns:
+            Sorted list of matching key strings.
+
+        Raises:
+            ImportError: If the ``vastai`` SDK is not installed.
+        """
+        _require_vastai()
+        return sorted(k for k in self._uploaded_keys if k.startswith(prefix))
+
+
 __all__ = [
     "LocalFilesystemStorage",
     "ModalVolumeStorage",
     "RemoteStorage",
     "RunpodVolumeStorage",
+    "VastAiStorage",
 ]

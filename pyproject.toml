@@ -94,6 +94,7 @@ mock-morph = "rfdf.backends.geometry.mock_morph:create"
 local = "rfdf.backends.compute.local:create"
 modal = "rfdf.backends.compute.modal:create"
 runpod = "rfdf.backends.compute.runpod:create"
+vastai = "rfdf.backends.compute.vastai:create"
 
 [project.urls]
 Homepage = "https://github.com/ernesto01louis/rf-direction-finding"
