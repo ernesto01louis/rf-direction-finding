@@ -1,12 +1,13 @@
 """Local compute backend (in-process / subprocess).
 
-Runs :class:`ComputeJob`s on the host the caller is running on. Two execution
-modes are picked automatically by the presence of ``container_image``:
+Runs :class:`ComputeJob`s on the host the caller is running on. The execution
+mode is picked automatically by the presence of ``container_image``:
 
-* ``container_image`` set → ``docker run`` subprocess (Stage 2 stubs this with a
-  clear error; the container path lands in Stage 4 alongside remote backends).
-* ``pip_requirements`` set → fresh ``venv`` + ``python entry_script``.
-* Neither → run ``python entry_script`` directly in the current interpreter.
+* ``container_image`` set → ``docker run`` subprocess: ``job.working_dir`` is
+  bind-mounted at ``/workspace`` and the entry script runs inside the image.
+* otherwise → ``python entry_script`` directly in the current interpreter (the
+  interpreter is assumed to already carry the job's dependencies; the local
+  backend does not build a per-job ``venv``).
 
 GPU detection is best-effort and never imports torch at module load. The local
 backend reports ``supports_gpu`` truthy when ``nvidia-smi`` exits 0; the
@@ -46,6 +47,38 @@ def _detect_gpu_present() -> bool:
     return result.returncode == 0
 
 
+def _build_docker_command(job: ComputeJob) -> list[str]:
+    """Build the ``docker run`` argv for a container-image job.
+
+    ``job.working_dir`` is bind-mounted at ``/workspace`` (the container's
+    working directory), the job's ``env`` is forwarded with ``-e`` flags, and
+    ``--gpus all`` is added when the job requests a GPU. The entry script is
+    invoked as ``python <entry_script>`` relative to ``/workspace``.
+
+    Args:
+        job: The compute job; ``job.container_image`` must be set.
+
+    Returns:
+        The ``docker run`` argument vector.
+    """
+    assert job.container_image is not None, "_build_docker_command needs a container_image"
+    cmd: list[str] = [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        f"{job.working_dir.resolve()}:/workspace",
+        "-w",
+        "/workspace",
+    ]
+    for key, value in job.env.items():
+        cmd += ["-e", f"{key}={value}"]
+    if job.gpu_count > 0:
+        cmd += ["--gpus", "all"]
+    cmd += [job.container_image, "python", job.entry_script]
+    return cmd
+
+
 class LocalCompute:
     """Implements :class:`rfdf.hal.ComputeBackend` for the local machine.
 
@@ -72,10 +105,15 @@ class LocalCompute:
         return True
 
     async def submit(self, job: ComputeJob) -> JobHandle:
-        """Spawn a subprocess to run ``job.entry_script`` from ``job.working_dir``."""
-        if job.container_image is not None:
-            raise NotImplementedError(
-                "LocalCompute: container_image execution is a Stage 4 deliverable"
+        """Spawn a subprocess to run ``job.entry_script`` from ``job.working_dir``.
+
+        When ``job.container_image`` is set the script runs inside a ``docker
+        run`` container; otherwise it runs directly in the current interpreter.
+        """
+        if job.container_image is not None and shutil.which("docker") is None:
+            raise RuntimeError(
+                "LocalCompute: container_image execution requires the docker CLI "
+                "on PATH; none was found"
             )
         if job.gpu_count > 0 and not self._gpu:
             raise RuntimeError(
@@ -161,15 +199,22 @@ class _LocalJobRecord:
         self._stdout_lines: list[str] = []
 
     async def start(self) -> None:
-        """Launch the subprocess and switch state to RUNNING."""
+        """Launch the subprocess (``docker run`` or direct) and switch to RUNNING."""
+        import os
         import sys
 
-        cmd = [sys.executable, str(self.entry)]
-        env = {**self.job.env}
+        if self.job.container_image is None:
+            cmd = [sys.executable, str(self.entry)]
+            env = {**self.job.env}
+        else:
+            cmd = _build_docker_command(self.job)
+            # The docker CLI needs the caller's PATH / DOCKER_HOST; the job's
+            # own env is forwarded into the container via -e flags instead.
+            env = {**os.environ}
         self.proc = await asyncio.create_subprocess_exec(
             *cmd,
             cwd=self.job.working_dir,
-            env={**env},
+            env=env,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
         )
