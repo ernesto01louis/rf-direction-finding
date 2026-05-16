@@ -2,14 +2,16 @@
 
 A ``RemoteStorage`` provides a key-value store for datasets and artifacts that
 persist between compute runs so that large files are not re-uploaded with every
-job submission.  Two implementations ship in-tree:
+job submission.  Three implementations ship in-tree:
 
 * :class:`LocalFilesystemStorage` — backed by a plain directory on disk; zero
   dependencies, fully testable without any provider account.
 * :class:`RunpodVolumeStorage` — backed by a RunPod Network Volume; lazy
   ``runpod`` import so the module is importable without the SDK.
+* :class:`ModalVolumeStorage` — backed by a Modal Volume; lazy ``modal`` import
+  so the module is importable without the SDK.
 
-Both satisfy the :class:`RemoteStorage` ``@runtime_checkable`` Protocol.
+All satisfy the :class:`RemoteStorage` ``@runtime_checkable`` Protocol.
 """
 
 from __future__ import annotations
@@ -315,8 +317,174 @@ class RunpodVolumeStorage:
         return sorted(k for k in self._uploaded_keys if k.startswith(prefix))
 
 
+# ---------------------------------------------------------------------------
+# ModalVolumeStorage
+# ---------------------------------------------------------------------------
+
+
+def _require_modal() -> object:
+    """Import and return the ``modal`` module, raising a clear error if absent.
+
+    Returns:
+        The ``modal`` module object.
+
+    Raises:
+        ImportError: With install instructions if ``modal`` is not installed.
+    """
+    try:
+        import modal  # lazy import — intentional
+
+        return modal
+    except ImportError as exc:
+        raise ImportError(
+            "ModalVolumeStorage requires the modal SDK; "
+            "install it with:  pip install rfdf[compute-modal]"
+        ) from exc
+
+
+class ModalVolumeStorage:
+    """Implements :class:`RemoteStorage` via a Modal Volume.
+
+    Modal Volumes are persistent network-backed storage that can be mounted
+    into Modal Sandboxes or Functions at a configurable path.  This
+    implementation records uploaded keys in-process so that :meth:`exists` /
+    :meth:`list` work within a session.
+
+    .. note::
+        This is a **partial implementation**.  Real file transfer to a Modal
+        Volume requires the ``modal`` SDK and active credentials (set up via
+        ``modal token new`` or ``MODAL_TOKEN_ID`` / ``MODAL_TOKEN_SECRET``
+        env vars).  :meth:`put` validates the source file and records the key
+        in-process; the actual upload to Modal's storage layer requires a live
+        Modal account and is documented as a stub.  :meth:`get` raises
+        :class:`NotImplementedError` because downloading from a Modal Volume
+        outside a Modal container requires ``Volume.read_file()``, which needs
+        active credentials.  Use :class:`LocalFilesystemStorage` for real
+        storage without a Modal account.
+
+    Attributes:
+        volume_name: Modal Volume name (created via ``modal volume create``
+            or :func:`modal.Volume.from_name`).
+        mount_path: Path where the volume is mounted inside Modal containers.
+    """
+
+    def __init__(
+        self, volume_name: str = "rfdf-default", mount_path: str = "/modal-volume"
+    ) -> None:
+        """Initialise the storage backend.
+
+        Args:
+            volume_name: The Modal Volume name.  The volume must already exist
+                (create with ``modal volume create <name>``) or be configured
+                with ``create_if_missing=True`` when the SDK acquires it.
+            mount_path: Mount path used when attaching the volume to a sandbox
+                or function.  Defaults to ``"/modal-volume"``.
+        """
+        self.volume_name = volume_name
+        self.mount_path = mount_path
+        # Key → virtual path mapping persisted in-memory for this session.
+        # In production the actual file layout on the Modal Volume is the
+        # source of truth; this cache makes exists() / list() cheap for the
+        # common case where the same process uploaded the keys.
+        self._uploaded_keys: set[str] = set()
+
+    @property
+    def name(self) -> str:
+        """Always ``"modal-volume"``."""
+        return "modal-volume"
+
+    async def put(self, local_path: Path, remote_key: str) -> str:
+        """Register *remote_key* for *local_path* on the Modal Volume.
+
+        Partial implementation (see the class note): the real file upload to a
+        Modal Volume requires active credentials and an async context via
+        ``Volume.batch_upload()``.  ``put`` validates the source file and
+        records the key in-process so :meth:`exists` / :meth:`list` work
+        within a session.  Operators extend it with a
+        ``vol.batch_upload()``-based transfer against a live Modal account.
+
+        Args:
+            local_path: Source file on the local filesystem.
+            remote_key: Destination key inside the volume (relative path).
+
+        Returns:
+            The *remote_key* unchanged.
+
+        Raises:
+            FileNotFoundError: If *local_path* does not exist.
+            ImportError: If the ``modal`` SDK is not installed.
+        """
+        _require_modal()
+        if not local_path.exists():
+            raise FileNotFoundError(f"ModalVolumeStorage.put: {local_path} not found")
+        self._uploaded_keys.add(remote_key)
+        return remote_key
+
+    async def get(self, remote_key: str, local_path: Path) -> None:
+        """Download the object at *remote_key* from the Modal Volume.
+
+        Args:
+            remote_key: Key of the object to retrieve.
+            local_path: Destination path; parent directory must exist.
+
+        Raises:
+            KeyError: If *remote_key* is not known to this storage instance.
+            NotImplementedError: Always — downloading from a Modal Volume
+                outside a Modal container requires ``Volume.read_file()`` with
+                active credentials; operators implement this by acquiring the
+                volume via ``modal.Volume.from_name(volume_name)`` and calling
+                ``async for chunk in vol.read_file(remote_key): ...`` to write
+                chunks to *local_path*.
+            ImportError: If the ``modal`` SDK is not installed.
+        """
+        _require_modal()
+        if remote_key not in self._uploaded_keys:
+            raise KeyError(f"ModalVolumeStorage: key {remote_key!r} not found")
+        # In a full implementation this would use modal.Volume.read_file():
+        #
+        #   vol = modal.Volume.from_name(self.volume_name)
+        #   with open(local_path, "wb") as fh:
+        #       async for chunk in vol.read_file(remote_key):
+        #           fh.write(chunk)
+        #
+        # This requires active Modal credentials and an async context.
+        raise NotImplementedError(
+            "ModalVolumeStorage.get: file download from a Modal Volume "
+            "requires active Modal credentials; use modal.Volume.from_name() "
+            "and Volume.read_file() to implement the transfer."
+        )
+
+    async def exists(self, remote_key: str) -> bool:
+        """Return ``True`` if *remote_key* was uploaded by this storage instance.
+
+        Args:
+            remote_key: Key to probe.
+
+        Raises:
+            ImportError: If the ``modal`` SDK is not installed.
+        """
+        _require_modal()
+        return remote_key in self._uploaded_keys
+
+    async def list(self, prefix: str = "") -> list[str]:
+        """Return sorted known keys that start with *prefix*.
+
+        Args:
+            prefix: Optional filter; empty string returns all known keys.
+
+        Returns:
+            Sorted list of matching key strings.
+
+        Raises:
+            ImportError: If the ``modal`` SDK is not installed.
+        """
+        _require_modal()
+        return sorted(k for k in self._uploaded_keys if k.startswith(prefix))
+
+
 __all__ = [
     "LocalFilesystemStorage",
+    "ModalVolumeStorage",
     "RemoteStorage",
     "RunpodVolumeStorage",
 ]
