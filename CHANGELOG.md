@@ -77,10 +77,14 @@ recorded here per the release.
   `python -m rfdf.ml.train_entrypoint <recipe.toml>` or via `$RFDF_RECIPE` env var.
   Logic lives in `rfdf.ml.training`; the entrypoint only resolves the recipe, calls
   `build_datasets` + `train`, and prints a `"<name>: trained best_val_acc=… PASS"` line.
-- `src/rfdf/ml/recipes/` — 6 operator-ready TOML recipe templates:
+- `recipes/` — 6 operator-ready TOML recipe templates:
   `sig53-resnet1d-baseline`, `sig53-resnet2d-baseline`, `radioml-resnet2d`,
   `wideband-detection-detr` (uses `transformer` architecture — DETR not yet in the
   platform; noted as a deviation), `protocol-id-resnet2d`, `fingerprint-finetune`.
+- `LocalCompute` container execution — a `ComputeJob` with a `container_image` now
+  runs via `docker run` (working dir bind-mounted at `/workspace`, `job.env`
+  forwarded with `-e`, `--gpus all` when a GPU is requested), replacing the Stage 2
+  `NotImplementedError`.
 
 ## [0.0.3] - 2026-05-15
 
