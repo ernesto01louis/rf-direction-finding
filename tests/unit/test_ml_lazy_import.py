@@ -98,3 +98,15 @@ def test_import_rfdf_ml_datasets_torchsig_compat_no_torch() -> None:
         ["rfdf.ml.datasets._torchsig_compat"], ["torch", "torchsig", "torchvision"]
     )
     assert not err, f"Lazy-import violated for 'rfdf.ml.datasets._torchsig_compat': {err}"
+
+
+def test_import_rfdf_ml_models_no_torch() -> None:
+    """``import rfdf.ml.models`` must not load torch, torchsig, or torchvision.
+
+    The package ``__init__`` uses :func:`importlib.import_module` lazily inside
+    :func:`~rfdf.ml.models.build_model`; calling ``build_model`` is the only
+    point that triggers the individual architecture modules (which do import
+    torch).  Importing the package itself must remain torch-free.
+    """
+    err = _clean_import_check(["rfdf.ml.models"], ["torch", "torchsig", "torchvision"])
+    assert not err, f"Lazy-import violated for 'rfdf.ml.models': {err}"

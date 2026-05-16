@@ -26,8 +26,13 @@ repos:
         args: [--fix]
       - id: ruff-format
 
+  # Pinned to track the dev/CI mypy line (pyproject.toml [dev] uses mypy>=1.13,
+  # which resolves to the latest). Keeping this pin behind the CI mypy caused an
+  # unused-ignore skew: mypy 1.x and 2.x disagree on which `# type: ignore`
+  # comments torch's untyped return types require. Bump this rev whenever the
+  # CI mypy line moves.
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.13.0
+    rev: v2.1.0
     hooks:
       - id: mypy
         additional_dependencies:
@@ -39,7 +44,12 @@ repos:
           - "numpy>=1.26"
           - "types-PyYAML"
         # Limit mypy to the package under src/; tests are excluded by pyproject.toml.
+        # src/rfdf/ml/ and src/rfdf/backends/compute/ are excluded here: they
+        # import the heavy [ml] / [compute-*] SDKs (torch, runpod, ...) that this
+        # isolated hook env cannot carry. The `lint` CI job installs those extras
+        # and is the complete mypy gate for those subtrees.
         files: ^src/rfdf/
+        exclude: ^src/rfdf/(ml|backends/compute)/
 
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v3.31.0
