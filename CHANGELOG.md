@@ -37,6 +37,21 @@ recorded here per the release.
   annotation-based label extraction, fixed-length windowing, and **by-session**
   train/val/test split to prevent data leakage.  Lazy `torch` import.
 - `coverage-ml` CI gate activated (removed `if: false`); enforces ≥75% ML coverage.
+- `rfdf.ml.models` — four neural-network architectures for RF signal classification,
+  all subclassing `RfdfClassifier` (which provides `predict_proba`, `features`, and
+  `to_onnx`):
+  - `ResNet1D` — 1-D residual CNN over raw IQ as two real channels `(2, num_samples)`;
+    configurable depth (`"resnet18"` / `"resnet34"`).  Modulation-classification baseline.
+  - `ResNet2D` — 2-D residual CNN (ResNet-18 layout) over a spectrogram /
+    time-frequency image `(channels, freq_bins, time_bins)`.
+  - `SignalTransformer` — lightweight Transformer encoder over non-overlapping spatial
+    patches of a 2-D time-frequency input; uses a `[CLS]` token following ViT conventions.
+  - `EfficientNetClassifier` — `torchvision.models.efficientnet_b0` adapted for
+    multi-channel RF spectrograms (stem replaced for arbitrary channel count, head
+    replaced for `num_classes`; pretrained weights never loaded).
+- `rfdf.ml.models.build_model` — lazy factory: maps an architecture name to the right
+  module via `importlib.import_module` so that `import rfdf.ml.models` never loads
+  `torch`.  Raises `ModelError` for unknown names.
 
 ## [0.0.3] - 2026-05-15
 
