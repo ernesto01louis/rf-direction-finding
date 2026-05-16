@@ -21,6 +21,7 @@ from rfdf.backends.compute._remote_storage import (
     ModalVolumeStorage,
     RemoteStorage,
     RunpodVolumeStorage,
+    SkyPilotBucketStorage,
     VastAiStorage,
 )
 
@@ -55,6 +56,11 @@ def test_modal_volume_is_remote_storage() -> None:
 
 def test_vastai_storage_is_remote_storage() -> None:
     store = VastAiStorage()
+    assert isinstance(store, RemoteStorage)
+
+
+def test_skypilot_bucket_storage_is_remote_storage() -> None:
+    store = SkyPilotBucketStorage()
     assert isinstance(store, RemoteStorage)
 
 
@@ -540,4 +546,140 @@ class TestVastAiStorage:
         monkeypatch.setattr(mod, "_require_vastai", _fail)
 
         with pytest.raises(ImportError, match="rfdf\\[compute-vastai\\]"):
+            _run(store.put(src, "k"))
+
+
+# ---------------------------------------------------------------------------
+# SkyPilotBucketStorage — mocked SDK
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def fake_sky_in_modules(monkeypatch: pytest.MonkeyPatch) -> types.ModuleType:
+    """Inject a minimal fake sky module into sys.modules."""
+    fake = types.ModuleType("sky")
+    fake_check = types.ModuleType("sky.check")
+    fake.check = fake_check  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "sky", fake)
+    monkeypatch.setitem(sys.modules, "sky.check", fake_check)
+    return fake
+
+
+class TestSkyPilotBucketStorage:
+    def test_name(self) -> None:
+        store = SkyPilotBucketStorage()
+        assert store.name == "skypilot-bucket"
+
+    def test_default_attributes(self) -> None:
+        store = SkyPilotBucketStorage()
+        assert store.bucket_name == "rfdf-skypilot"
+        assert store.mount_path == "/sky-bucket"
+
+    def test_custom_attributes(self) -> None:
+        store = SkyPilotBucketStorage(bucket_name="my-bucket", mount_path="/data")
+        assert store.bucket_name == "my-bucket"
+        assert store.mount_path == "/data"
+
+    def test_put_adds_key(
+        self,
+        fake_sky_in_modules: types.ModuleType,
+        tmp_path: Path,
+    ) -> None:
+        store = SkyPilotBucketStorage()
+        src = tmp_path / "data.bin"
+        src.write_bytes(b"hello")
+        returned = _run(store.put(src, "blobs/data.bin"))
+        assert returned == "blobs/data.bin"
+        assert _run(store.exists("blobs/data.bin")) is True
+
+    def test_put_raises_if_source_missing(
+        self,
+        fake_sky_in_modules: types.ModuleType,
+        tmp_path: Path,
+    ) -> None:
+        store = SkyPilotBucketStorage()
+        with pytest.raises(FileNotFoundError):
+            _run(store.put(tmp_path / "missing.bin", "x.bin"))
+
+    def test_exists_false_before_put(
+        self,
+        fake_sky_in_modules: types.ModuleType,
+    ) -> None:
+        store = SkyPilotBucketStorage()
+        assert _run(store.exists("not-uploaded")) is False
+
+    def test_list_prefix_filter(
+        self,
+        fake_sky_in_modules: types.ModuleType,
+        tmp_path: Path,
+    ) -> None:
+        store = SkyPilotBucketStorage()
+        for name in ("models/a.pt", "models/b.pt", "data/x.h5"):
+            src = tmp_path / "f"
+            src.write_text(name)
+            _run(store.put(src, name))
+        keys = _run(store.list("models/"))
+        assert sorted(keys) == ["models/a.pt", "models/b.pt"]
+
+    def test_list_empty_prefix(
+        self,
+        fake_sky_in_modules: types.ModuleType,
+        tmp_path: Path,
+    ) -> None:
+        store = SkyPilotBucketStorage()
+        src = tmp_path / "x.txt"
+        src.write_text("y")
+        _run(store.put(src, "x.txt"))
+        keys = _run(store.list())
+        assert "x.txt" in keys
+
+    def test_get_raises_for_unknown_key(
+        self,
+        fake_sky_in_modules: types.ModuleType,
+        tmp_path: Path,
+    ) -> None:
+        store = SkyPilotBucketStorage()
+        with pytest.raises(KeyError):
+            _run(store.get("nonexistent-key", tmp_path / "out.bin"))
+
+    def test_get_raises_not_implemented_for_known_key(
+        self,
+        fake_sky_in_modules: types.ModuleType,
+        tmp_path: Path,
+    ) -> None:
+        """get() on a known key documents the cloud-provider-SDK stub."""
+        store = SkyPilotBucketStorage()
+        src = tmp_path / "f.bin"
+        src.write_bytes(b"data")
+        _run(store.put(src, "f.bin"))
+        with pytest.raises(NotImplementedError):
+            _run(store.get("f.bin", tmp_path / "restored.bin"))
+
+    def test_sdk_missing_raises_import_error(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        """SkyPilotBucketStorage methods raise ImportError when SDK absent."""
+        monkeypatch.delitem(sys.modules, "sky", raising=False)
+        monkeypatch.delitem(sys.modules, "sky.check", raising=False)
+
+        import importlib
+
+        import rfdf.backends.compute._remote_storage as mod
+
+        importlib.reload(mod)
+        store = mod.SkyPilotBucketStorage()
+        src = tmp_path / "f.bin"
+        src.write_bytes(b"data")
+
+        def _fail() -> Any:
+            raise ImportError(
+                "SkyPilotBucketStorage requires the skypilot SDK; "
+                "install it with:  pip install rfdf[compute-skypilot]"
+            )
+
+        monkeypatch.setattr(mod, "_require_sky", _fail)
+
+        with pytest.raises(ImportError, match="rfdf\\[compute-skypilot\\]"):
             _run(store.put(src, "k"))

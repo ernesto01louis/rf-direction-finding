@@ -13,6 +13,52 @@ recorded here per the release.
 
 ### Added
 
+- **PR9 — SkyPilot multi-cloud compute backend** (`rfdf[compute-skypilot]`):
+  - `rfdf.backends.compute.skypilot` — `SkyPilotCompute` implementing the async
+    `ComputeBackend` Protocol against the `skypilot` Python SDK (v0.7+, imported
+    as `sky`).  Auth delegated to each cloud's native credential mechanism
+    (AWS `~/.aws/`, GCP service-account JSON, Lambda Cloud token, etc.) configured
+    via `sky check`; the backend does not manage credentials directly.
+  - **Multi-cloud cheapest-pick behaviour**: SkyPilot's `optimize_target=COST`
+    scans all `sky check`-enabled providers and picks the cheapest available
+    resource satisfying the `sky.Resources` spec.  Adding a new cloud credential
+    widens the pool without any code change.
+  - **Execution model**: each `submit` call launches a named SkyPilot cluster
+    (`rfdf-<uuid8>`), runs the entry script as a `sky.Task`, and auto-tears
+    down the cluster after the task completes (`down=True`).  The cluster name
+    is stored as `JobHandle.job_id`; the numeric SkyPilot job ID for
+    `sky.queue` / `sky.tail_logs` lookups is stored in
+    `handle.extra["sky_job_id"]`.
+  - **Lazy-SDK-import pattern** — the `sky` module is imported only inside
+    methods that call the SDK, never at module top level.  `create()` factory is
+    import-safe; `rfdf compute list` can enumerate the backend without the SDK
+    installed.  `cost_estimate` is fully SDK-free (pure arithmetic on the static
+    `_RATES` table — verified by the contract test suite).
+  - **`cost_estimate`** uses a static `_RATES` table of representative ceiling
+    prices across AWS, GCP, Lambda Cloud, and RunPod (the clouds SkyPilot
+    supports).  Formula: `estimated = rate × 1.5 × runtime_h × gpu_units`
+    (low 1.0×, high 2.0×).  SkyPilot's actual selected rate is often lower due
+    to multi-cloud spot-price optimisation.
+  - `SkyPilotBucketStorage` added to `rfdf.backends.compute._remote_storage` —
+    backed by a SkyPilot-managed cloud bucket (S3, GCS, or R2 depending on the
+    enabled cloud); lazy `sky` import.  Partial implementation: `put` records
+    keys in-process so `exists()` / `list()` work within a session; `get` raises
+    `NotImplementedError` (downloading from a cloud bucket outside a cluster
+    requires the cloud provider's native SDK — documented plainly in the
+    docstring).
+  - `skypilot` entry-point registered under `rfdf.backends.compute`.
+  - Unit tests (`tests/unit/test_compute_skypilot.py` +
+    `tests/unit/test_remote_storage.py` additions) with the SDK fully mocked —
+    no real network calls.  Covers properties, `cost_estimate` arithmetic (SDK-free
+    path, 1.5× factor, `low ≤ estimated ≤ high`), `submit` / `status` / `logs` /
+    `cancel` / `fetch_artifacts` against mocked responses, no-clouds
+    `RuntimeError`, missing-SDK `ImportError`, lazy-import guarantee (`sky` never
+    leaks into `sys.modules` on bare import), and `shlex`-based command-quoting
+    regression guard.
+  - `tests/integration/test_compute_skypilot_live.py` — real connectivity smoke
+    test (list enabled clouds + cost estimate + CPU-only launch-and-cancel),
+    skipped unless `SKYPILOT_TEST_LIVE=1` is set.
+
 - **PR8 — Vast.ai cloud compute backend** (`rfdf[compute-vastai]`):
   - `rfdf.backends.compute.vastai` — `VastAiCompute` implementing the async
     `ComputeBackend` Protocol against the `vastai` Python SDK (v0.2+).  Auth via
