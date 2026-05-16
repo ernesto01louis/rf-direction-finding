@@ -11,6 +11,14 @@ recorded here per the release.
 
 ## [Unreleased]
 
+### Added
+
+- `ml-coreml` (`coremltools`) and `ml-tflite` (`ai-edge-torch`) optional-dependency
+  extras, completing the Stage 4 ML export surface.
+- `coverage-ml` CI job — a dedicated 75% coverage floor for `src/rfdf/ml/` and the
+  cloud compute backends, which the base `coverage` job omits because they require
+  the `[ml]` / `[compute-*]` extras.
+
 ## [0.0.3] - 2026-05-15
 
 ### Added — classical DOA pipeline

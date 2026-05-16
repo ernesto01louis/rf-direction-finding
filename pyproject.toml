@@ -37,9 +37,11 @@ sdr-soapy = ["SoapySDR>=0.8"]
 # --- Rotator backends ---
 rotator-hamlib = ["hamlib-py>=4.5"]
 # --- ML ---
-ml = ["torch>=2.5", "torchvision>=0.20", "torchsig>=2.0", "scikit-learn>=1.5"]
+ml = ["torch>=2.5", "torchvision>=0.20", "torchsig>=2.0", "scikit-learn>=1.5", "h5py>=3.11"]
 ml-onnx = ["onnx>=1.17", "onnxruntime>=1.20"]
 ml-hailo = []  # vendor SDK installed externally; no PyPI package
+ml-coreml = ["coremltools>=8.0"]
+ml-tflite = ["ai-edge-torch>=0.2"]  # torch->TFLite converter (verified in the export PR)
 # --- Compute backends ---
 compute-runpod = ["runpod>=1.7"]
 compute-modal = ["modal>=0.65"]
@@ -69,7 +71,7 @@ crosscheck = ["pyargus>=1.0", "matplotlib>=3.5"]
 # --- Convenience meta-extras ---
 all-hardware = ["rfdf[sdr-uhd,sdr-pluto,sdr-soapy,rotator-hamlib]"]
 all-compute = ["rfdf[compute-runpod,compute-modal,compute-vastai,compute-skypilot]"]
-all = ["rfdf[ml,ml-onnx,api,antenna,all-hardware,all-compute,orchestrator]"]
+all = ["rfdf[ml,ml-onnx,ml-coreml,ml-tflite,api,antenna,all-hardware,all-compute,orchestrator]"]
 
 [project.scripts]
 rfdf = "rfdf.cli.main:app"
@@ -155,6 +157,27 @@ ignore_missing_imports = true
 module = ["scipy.*"]
 ignore_missing_imports = true
 
+# Stage 4 ML + compute-provider SDKs ship no (or incomplete) type stubs. They are
+# all lazy-imported behind the [ml] / [compute-*] extras; mypy treats them as Any.
+[[tool.mypy.overrides]]
+module = [
+    "torch.*",
+    "torchvision.*",
+    "torchsig.*",
+    "onnx.*",
+    "onnxruntime.*",
+    "coremltools.*",
+    "ai_edge_torch.*",
+    "tensorflow.*",
+    "sklearn.*",
+    "h5py.*",
+    "runpod.*",
+    "modal.*",
+    "vastai.*",
+    "sky.*",
+]
+ignore_missing_imports = true
+
 # ---------------------------------------------------------------------------
 # pytest
 # ---------------------------------------------------------------------------
@@ -175,6 +198,18 @@ markers = [
 [tool.coverage.run]
 source = ["src/rfdf"]
 branch = true
+# Stage 4: src/rfdf/ml/ and the cloud compute backends only import once the
+# [ml] / [compute-*] extras are installed, which the base `coverage` job does
+# not do. They get their own 75% floor in the `coverage-ml` CI job — see
+# .coveragerc-ml. local.py stays measured here (no domain dependencies).
+omit = [
+    "src/rfdf/ml/*",
+    "src/rfdf/backends/compute/runpod.py",
+    "src/rfdf/backends/compute/modal.py",
+    "src/rfdf/backends/compute/vastai.py",
+    "src/rfdf/backends/compute/skypilot.py",
+    "src/rfdf/backends/compute/_remote_storage.py",
+]
 
 [tool.coverage.report]
 fail_under = 80  # Stage 3 ratchet (Stage 1 set 0, Stage 2 raised it to 70).
