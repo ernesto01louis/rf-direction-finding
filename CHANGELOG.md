@@ -13,6 +13,44 @@ recorded here per the release.
 
 ### Added
 
+- **PR8 — Vast.ai cloud compute backend** (`rfdf[compute-vastai]`):
+  - `rfdf.backends.compute.vastai` — `VastAiCompute` implementing the async
+    `ComputeBackend` Protocol against the `vastai` Python SDK (v0.2+).  Auth via
+    `VAST_API_KEY` environment variable, `~/.config/vastai/vast_api_key` (XDG), or
+    the legacy `~/.vast_api_key` — the SDK's standard key-resolution order; no
+    rfdf-specific config consulted.  Submits jobs by searching the Vast.ai
+    **marketplace** for the cheapest on-demand offer matching
+    `ComputeJob.gpu_model` / `gpu_count` / `gpu_min_vram_gb`, then calls
+    `create_instance` on the top result.  The entry script runs via the `onstart`
+    command (bash wrapper when pip requirements are present).  `cost_estimate` uses
+    a static `_RATES` table with the formula
+    `estimated = rate × 1.5 × runtime_h × gpu_units` (low 1.0×, high 2.0×); rates
+    are indicative marketplace floor prices — actual spot bids may be lower.
+  - **Marketplace reliability tradeoff documented** in the class docstring: Vast.ai
+    hosts are third-party machines and instances can be interrupted; high-reliability
+    workloads should prefer a managed cloud backend (RunPod reserved, Modal).
+  - **Lazy-SDK-import pattern** — the `vastai` module is imported only inside
+    methods that call the SDK, never at module top level.  `create()` factory is
+    import-safe; `rfdf compute list` can enumerate the backend without the SDK
+    installed.  `cost_estimate` is fully SDK-free (pure arithmetic on the static
+    `_RATES` table).
+  - `VastAiStorage` added to `rfdf.backends.compute._remote_storage` — backed by
+    Vast.ai per-instance disk (not a shared network volume); lazy `vastai` import.
+    Partial implementation: `put` records keys in-process so `exists()` / `list()`
+    work within a session; `get` raises `NotImplementedError` (downloading from
+    instance disk requires SSH access — documented plainly in the docstring).
+  - `vastai` entry-point registered under `rfdf.backends.compute`.
+  - Unit tests (`tests/unit/test_compute_vastai.py` +
+    `tests/unit/test_remote_storage.py` additions) with the SDK fully mocked —
+    no real network calls.  Covers properties, `cost_estimate` arithmetic (SDK-free
+    path, 1.5× factor, `low ≤ estimated ≤ high`), `submit` / `status` / `logs` /
+    `cancel` / `fetch_artifacts` against mocked responses, no-offers `RuntimeError`,
+    missing-credentials `RuntimeError`, missing-SDK `ImportError`, lazy-import
+    guarantee, and `shlex`-based `_build_onstart_cmd` quoting regression guard.
+  - `tests/integration/test_compute_vastai_live.py` — real connectivity smoke
+    test (search offers + cost estimate + create-and-immediately-destroy),
+    skipped unless `VAST_API_KEY` is set.
+
 - **PR7 — Modal cloud compute backend** (`rfdf[compute-modal]`):
   - `rfdf.backends.compute.modal` — `ModalCompute` implementing the async
     `ComputeBackend` Protocol against the `modal` Python SDK (v1.x).  Auth via
