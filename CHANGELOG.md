@@ -13,6 +13,45 @@ recorded here per the release.
 
 ### Added
 
+- **PR10 — ML inference paths, model export pipeline, and local model registry**:
+  - `rfdf.ml.inference` — `Classifier` with three inference backends:
+    - **torch** (`Classifier.from_registry(..., backend="torch")`): loads a
+      `model.pt` checkpoint, restores the `RfdfClassifier` weights, and runs the
+      forward + `features()` pass to populate `ClassificationResult.feature_vector`.
+    - **onnx** (`backend="onnx"`): runs `model.onnx` via `onnxruntime.InferenceSession`
+      (requires `[ml-onnx]`); `feature_vector` is a zero-length array (feature
+      extraction requires the torch model).
+    - **hailo** (`backend="hailo"`): runs `model.hef` via `hailo_platform` (HailoRT SDK,
+      NOT on PyPI — lazy-imported; raises a clear `InferenceError` with installation
+      instructions when absent).
+  - `ClassificationResult` — frozen Pydantic model with `top_k_classes`,
+    `top_k_probabilities`, `feature_vector` (np.ndarray), and `inference_time_ms`.
+  - `rfdf.ml.export` — four export functions:
+    - `export_onnx` — `torch.onnx.export` with dynamic batch axes (opset 17 default);
+      always available with the `[ml]` extra.
+    - `export_hailo` — shells out to `hailomz` / `hailo` CLI if on PATH, else raises
+      `ExportError` with Hailo Dataflow Compiler installation instructions; validates
+      existing HEF files by magic-byte check (`HEF\0`).
+    - `export_tflite` — uses `litert-torch` (installed via `ai-edge-torch` in the
+      `[ml-tflite]` extra); lazy-imported; conversion verified working on Linux for
+      the four built-in architectures.
+    - `export_coreml` — uses `coremltools` (`[ml-coreml]` extra) via ONNX→CoreML;
+      conversion runs on Linux but `libcoremlpython` (run/validate) is macOS-only.
+  - `rfdf.ml.registry` — local filesystem model registry:
+    - Default root: `~/.local/share/rfdf/models/` (via `platformdirs`); overridable
+      via `RFDF_MODEL_REGISTRY` env var (used by tests).
+    - `ModelManifest` frozen Pydantic model with `model_id`, `architecture`, `task`,
+      `dataset`, `training`, `evaluation`, `provenance`, `exports`, `evaluation_history`,
+      and `registered_at`.
+    - **Append-only manifests**: re-registering or re-evaluating appends to
+      `evaluation_history`, never overwrites prior records.
+    - Functions: `register_model`, `get_manifest`, `load_model` (lazy torch),
+      `list_models`, `delete_model`, `export_model` (tar.gz bundle),
+      `import_model` (unpack bundle), `update_exports`.
+  - Lazy-import discipline: `rfdf.ml.registry` imports torch only inside
+    `load_model()`; `import rfdf.ml.registry` is torch-free (enforced by the
+    expanded `test_ml_lazy_import` suite).
+
 - **PR9 — SkyPilot multi-cloud compute backend** (`rfdf[compute-skypilot]`):
   - `rfdf.backends.compute.skypilot` — `SkyPilotCompute` implementing the async
     `ComputeBackend` Protocol against the `skypilot` Python SDK (v0.7+, imported

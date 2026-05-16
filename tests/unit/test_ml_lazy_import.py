@@ -138,3 +138,14 @@ def test_import_rfdf_ml_manifest_no_torch() -> None:
     """``import rfdf.ml._manifest`` must not load torch, torchsig, or torchvision."""
     err = _clean_import_check(["rfdf.ml._manifest"], ["torch", "torchsig", "torchvision"])
     assert not err, f"Lazy-import violated for 'rfdf.ml._manifest': {err}"
+
+
+def test_import_rfdf_ml_registry_no_torch() -> None:
+    """``import rfdf.ml.registry`` must not load torch, torchsig, or torchvision.
+
+    The registry is a pure filesystem / JSON module.  ``load_model`` imports
+    torch lazily inside the function body — importing the module itself must
+    remain torch-free.
+    """
+    err = _clean_import_check(["rfdf.ml.registry"], ["torch", "torchsig", "torchvision"])
+    assert not err, f"Lazy-import violated for 'rfdf.ml.registry': {err}"
