@@ -18,6 +18,25 @@ recorded here per the release.
 - `coverage-ml` CI job — a dedicated 75% coverage floor for `src/rfdf/ml/` and the
   cloud compute backends, which the base `coverage` job omits because they require
   the `[ml]` / `[compute-*]` extras.
+- `rfdf.ml.errors` — `MlError` exception taxonomy with subclasses `DatasetError`,
+  `AugmentationError`, `ModelError`, `TrainingError`, `InferenceError`, `ExportError`,
+  and `RegistryError`.  Pure stdlib, importable without any ML extras.
+- `rfdf.ml.datasets.augmentation` — pure-NumPy IQ augmentation framework with
+  `AugmentationConfig` (AWGN, frequency shift, gain variation, IQ imbalance, multipath,
+  impulsive noise, sample-rate jitter) and `apply_augmentations`.  Torch-free.
+- `rfdf.ml.datasets._torchsig_compat` — TorchSig 2.x compatibility shim (verified
+  against TorchSig 2.1.1).  The sole file that imports torchsig; isolates all 2.x
+  API surface so future torchsig drift only touches this one module.
+- `rfdf.ml.datasets.synthetic` — `make_modulation_dataset` and
+  `make_protocol_dataset` backed by TorchSig's iterable dataset, returning
+  `torch.utils.data.Dataset` instances with per-item deterministic augmentation.
+- `rfdf.ml.datasets.radioml` — RadioML 2018.01A HDF5 loader with SNR/class filters,
+  download-on-first-use (separately mockable `_download_radioml`), and CC-BY-NC-SA
+  license notice.  Lazy `torch` + `h5py` imports.
+- `rfdf.ml.datasets.captured` — SigMF capture loader with directory-glob discovery,
+  annotation-based label extraction, fixed-length windowing, and **by-session**
+  train/val/test split to prevent data leakage.  Lazy `torch` import.
+- `coverage-ml` CI gate activated (removed `if: false`); enforces ≥75% ML coverage.
 
 ## [0.0.3] - 2026-05-15
 
