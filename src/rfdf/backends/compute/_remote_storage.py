@@ -2,7 +2,7 @@
 
 A ``RemoteStorage`` provides a key-value store for datasets and artifacts that
 persist between compute runs so that large files are not re-uploaded with every
-job submission.  Four implementations ship in-tree:
+job submission.  Five implementations ship in-tree:
 
 * :class:`LocalFilesystemStorage` — backed by a plain directory on disk; zero
   dependencies, fully testable without any provider account.
@@ -12,6 +12,9 @@ job submission.  Four implementations ship in-tree:
   so the module is importable without the SDK.
 * :class:`VastAiStorage` — backed by Vast.ai per-instance disk; lazy
   ``vastai`` import so the module is importable without the SDK.
+* :class:`SkyPilotBucketStorage` — backed by a SkyPilot-managed cloud bucket
+  (S3, GCS, or R2 depending on the enabled cloud); lazy ``sky`` import so the
+  module is importable without the SDK.
 
 All satisfy the :class:`RemoteStorage` ``@runtime_checkable`` Protocol.
 """
@@ -651,10 +654,192 @@ class VastAiStorage:
         return sorted(k for k in self._uploaded_keys if k.startswith(prefix))
 
 
+# ---------------------------------------------------------------------------
+# SkyPilotBucketStorage
+# ---------------------------------------------------------------------------
+
+
+def _require_sky() -> object:
+    """Import and return the ``sky`` module, raising a clear error if absent.
+
+    Returns:
+        The ``sky`` module object.
+
+    Raises:
+        ImportError: With install instructions if ``sky`` is not installed.
+    """
+    try:
+        import sky  # lazy import — intentional
+
+        return sky
+    except ImportError as exc:
+        raise ImportError(
+            "SkyPilotBucketStorage requires the skypilot SDK; "
+            "install it with:  pip install rfdf[compute-skypilot]"
+        ) from exc
+
+
+class SkyPilotBucketStorage:
+    """Implements :class:`RemoteStorage` via a SkyPilot-managed cloud bucket.
+
+    SkyPilot manages storage buckets across the cloud providers it supports
+    (AWS S3, GCP GCS, Cloudflare R2, etc.).  The specific bucket backend is
+    determined by which cloud is active in the operator's ``sky check``
+    environment.  A ``sky.Storage`` object is created with ``persistent=True``
+    so the bucket survives across task runs.
+
+    .. note::
+        This is a **partial implementation**.  Real file transfer to/from a
+        SkyPilot-managed bucket requires active cloud credentials (configured
+        via ``sky check``) and a live bucket.  :meth:`put` validates the source
+        file and records the key in-process so :meth:`exists` / :meth:`list`
+        work within a session; the actual upload to the cloud bucket would use
+        ``sky.Storage.upload_local_dir`` or the cloud SDK directly.  :meth:`get`
+        raises :class:`NotImplementedError` because downloading from a cloud
+        bucket outside a SkyPilot cluster requires cloud-provider-specific
+        transfer logic.  Use :class:`LocalFilesystemStorage` for real storage
+        without cloud credentials, or extend these methods with
+        ``boto3``/``google-cloud-storage`` transfers against the active bucket.
+
+    Attributes:
+        bucket_name: SkyPilot-managed bucket name (must be globally unique
+            across the target cloud provider's namespace).
+        mount_path: Conventional path where the bucket is mounted inside
+            SkyPilot cluster nodes.
+    """
+
+    def __init__(
+        self,
+        bucket_name: str = "rfdf-skypilot",
+        mount_path: str = "/sky-bucket",
+    ) -> None:
+        """Initialise the storage backend.
+
+        Args:
+            bucket_name: The bucket name passed to ``sky.Storage``.  Must
+                follow cloud provider naming rules (lowercase, hyphens, no
+                underscores for S3; 63-char max).  Defaults to
+                ``"rfdf-skypilot"``.
+            mount_path: Path where the bucket is mounted inside SkyPilot
+                cluster nodes.  Defaults to ``"/sky-bucket"``.
+        """
+        self.bucket_name = bucket_name
+        self.mount_path = mount_path
+        # Key → virtual path mapping persisted in-memory for this session.
+        # In production the actual file layout in the cloud bucket is the
+        # source of truth; this cache makes exists() / list() cheap for the
+        # common case where the same process uploaded the keys.
+        self._uploaded_keys: set[str] = set()
+
+    @property
+    def name(self) -> str:
+        """Always ``"skypilot-bucket"``."""
+        return "skypilot-bucket"
+
+    async def put(self, local_path: Path, remote_key: str) -> str:
+        """Register *remote_key* for *local_path* in the SkyPilot bucket.
+
+        Partial implementation (see the class note): real file transfer to a
+        SkyPilot-managed cloud bucket requires active cloud credentials and a
+        live bucket, unavailable without ``sky check``-configured providers.
+        ``put`` validates the source file and records the key in-process so
+        :meth:`exists` / :meth:`list` work within a session; operators extend
+        it with a ``boto3.put_object`` / ``google.cloud.storage.Blob.upload``
+        call or by writing to the bucket mount path on the cluster.
+
+        Args:
+            local_path: Source file on the local filesystem.
+            remote_key: Destination key in the bucket (relative path).
+
+        Returns:
+            The *remote_key* unchanged.
+
+        Raises:
+            FileNotFoundError: If *local_path* does not exist.
+            ImportError: If the ``sky`` SDK is not installed.
+        """
+        _require_sky()
+        if not local_path.exists():
+            raise FileNotFoundError(f"SkyPilotBucketStorage.put: {local_path} not found")
+        self._uploaded_keys.add(remote_key)
+        return remote_key
+
+    async def get(self, remote_key: str, local_path: Path) -> None:
+        """Download the object at *remote_key* from the SkyPilot bucket.
+
+        Args:
+            remote_key: Key of the object to retrieve.
+            local_path: Destination path; parent directory must exist.
+
+        Raises:
+            KeyError: If *remote_key* is not known to this storage instance.
+            NotImplementedError: Always — downloading from a SkyPilot-managed
+                cloud bucket outside a cluster requires the cloud provider's
+                native SDK (``boto3`` for S3, ``google-cloud-storage`` for GCS,
+                etc.).  Operators implement this by identifying the bucket's
+                provider from ``sky.Storage`` and calling the appropriate SDK.
+                Alternatively, mount the bucket inside a cluster node and read
+                from the mount path.
+            ImportError: If the ``sky`` SDK is not installed.
+        """
+        _require_sky()
+        if remote_key not in self._uploaded_keys:
+            raise KeyError(f"SkyPilotBucketStorage: key {remote_key!r} not found")
+        # In a full implementation this would use the cloud provider's SDK:
+        #
+        #   # For S3 (AWS):
+        #   import boto3
+        #   s3 = boto3.client("s3")
+        #   s3.download_file(self.bucket_name, remote_key, str(local_path))
+        #
+        #   # For GCS (GCP):
+        #   from google.cloud import storage
+        #   client = storage.Client()
+        #   bucket = client.bucket(self.bucket_name)
+        #   bucket.blob(remote_key).download_to_filename(str(local_path))
+        #
+        # The active cloud is determined by which provider SkyPilot selects;
+        # detecting it requires inspecting the sky.Storage or sky.check output.
+        raise NotImplementedError(
+            "SkyPilotBucketStorage.get: file download from a SkyPilot-managed "
+            "cloud bucket requires the cloud provider's native SDK (boto3 for "
+            "S3, google-cloud-storage for GCS).  Identify the active provider "
+            "from sky.check output and implement the corresponding download."
+        )
+
+    async def exists(self, remote_key: str) -> bool:
+        """Return ``True`` if *remote_key* was uploaded by this storage instance.
+
+        Args:
+            remote_key: Key to probe.
+
+        Raises:
+            ImportError: If the ``sky`` SDK is not installed.
+        """
+        _require_sky()
+        return remote_key in self._uploaded_keys
+
+    async def list(self, prefix: str = "") -> list[str]:
+        """Return sorted known keys that start with *prefix*.
+
+        Args:
+            prefix: Optional filter; empty string returns all known keys.
+
+        Returns:
+            Sorted list of matching key strings.
+
+        Raises:
+            ImportError: If the ``sky`` SDK is not installed.
+        """
+        _require_sky()
+        return sorted(k for k in self._uploaded_keys if k.startswith(prefix))
+
+
 __all__ = [
     "LocalFilesystemStorage",
     "ModalVolumeStorage",
     "RemoteStorage",
     "RunpodVolumeStorage",
+    "SkyPilotBucketStorage",
     "VastAiStorage",
 ]
