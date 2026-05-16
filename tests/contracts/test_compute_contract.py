@@ -11,6 +11,14 @@ import pytest
 
 from rfdf.hal import ComputeBackend, ComputeJob, JobStatus
 
+# Backends that execute jobs in the local environment without a provider SDK or
+# credentials. The job-execution contract (submit -> COMPLETED, fetch_artifacts)
+# is only verifiable in CI for these; cloud backends (runpod, modal, vastai,
+# skypilot) need provider SDKs + credentials and are covered by their own
+# mocked test suites. The structural / cost-estimate contracts below still run
+# against every discovered backend.
+_EXECUTABLE_BACKENDS = {"local"}
+
 
 def test_isinstance_protocol(compute_factories: list[tuple[str, Callable[..., Any]]]) -> None:
     """Every compute backend is a structural ComputeBackend."""
@@ -31,8 +39,14 @@ def test_no_op_job_reaches_completed(
     compute_factories: list[tuple[str, Callable[..., Any]]],
     tmp_path: Path,
 ) -> None:
-    """A trivial Python script eventually reports JobStatus.COMPLETED."""
-    for name, factory in compute_factories:
+    """A trivial Python script eventually reports JobStatus.COMPLETED.
+
+    Scoped to locally-executable backends (see ``_EXECUTABLE_BACKENDS``); cloud
+    backends need provider SDKs + credentials and cannot run a job in CI.
+    """
+    executable = [(n, f) for n, f in compute_factories if n in _EXECUTABLE_BACKENDS]
+    assert executable, "no locally-executable compute backend discovered"
+    for name, factory in executable:
         backend = factory()
         work = tmp_path / f"work-{name}"
         work.mkdir(exist_ok=True)
@@ -55,8 +69,13 @@ def test_fetch_artifacts_no_op_leaves_dest_empty(
     compute_factories: list[tuple[str, Callable[..., Any]]],
     tmp_path: Path,
 ) -> None:
-    """A no-op job with no artifact_globs leaves dest empty after fetch."""
-    for name, factory in compute_factories:
+    """A no-op job with no artifact_globs leaves dest empty after fetch.
+
+    Scoped to locally-executable backends — see ``_EXECUTABLE_BACKENDS``.
+    """
+    executable = [(n, f) for n, f in compute_factories if n in _EXECUTABLE_BACKENDS]
+    assert executable, "no locally-executable compute backend discovered"
+    for name, factory in executable:
         backend = factory()
         work = tmp_path / f"work-{name}-noop"
         work.mkdir()
