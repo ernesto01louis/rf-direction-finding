@@ -92,6 +92,7 @@ mock-morph = "rfdf.backends.geometry.mock_morph:create"
 
 [project.entry-points."rfdf.backends.compute"]
 local = "rfdf.backends.compute.local:create"
+modal = "rfdf.backends.compute.modal:create"
 runpod = "rfdf.backends.compute.runpod:create"
 
 [project.urls]

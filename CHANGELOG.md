@@ -13,6 +13,40 @@ recorded here per the release.
 
 ### Added
 
+- **PR7 — Modal cloud compute backend** (`rfdf[compute-modal]`):
+  - `rfdf.backends.compute.modal` — `ModalCompute` implementing the async
+    `ComputeBackend` Protocol against the `modal` Python SDK (v1.x).  Auth via
+    `~/.modal.toml` (populated by `modal token new`) or `MODAL_TOKEN_ID` /
+    `MODAL_TOKEN_SECRET` environment variables.  Submits jobs as Modal
+    `Sandbox` containers — no pre-deployed `App` function required; arbitrary
+    commands run directly.  GPU selection via `ComputeJob.gpu_model` and
+    `gpu_count` (translated to Modal's `"T4"` / `"A100:2"` string format).
+    `cost_estimate` uses a static `_RATES` table with the formula
+    `estimated = rate × 1.5 × runtime_h × gpu_units` (low 1.0×, high 2.0×);
+    Modal bills per-second so short jobs will be cheaper than the padded
+    estimate implies.
+  - **Lazy-SDK-import pattern** — the `modal` module is imported only inside
+    methods that call the SDK, never at module top level.  `create()` factory
+    is import-safe; `rfdf compute list` can enumerate the backend without the
+    SDK installed.  `cost_estimate` is fully SDK-free (pure arithmetic on the
+    static `_RATES` table).
+  - `ModalVolumeStorage` added to `rfdf.backends.compute._remote_storage` —
+    backed by a `modal.Volume`; lazy `modal` import.  Partial implementation:
+    `put` records keys in-process so `exists()` / `list()` work within a
+    session; `get` raises `NotImplementedError` (downloading from a Modal
+    Volume outside a container requires `Volume.read_file()` with active
+    credentials — documented plainly in the docstring).
+  - `modal` entry-point registered under `rfdf.backends.compute`.
+  - Unit tests (`tests/unit/test_compute_modal.py` +
+    `tests/unit/test_remote_storage.py` additions) with the SDK fully mocked
+    — no real network calls.  Covers properties, `cost_estimate` arithmetic
+    (1.5× factor, `low ≤ estimated ≤ high`), `submit` / `status` / `logs` /
+    `cancel` / `fetch_artifacts` against mocked responses, missing-credentials
+    `RuntimeError`, missing-SDK `ImportError`, lazy-import guarantee, and
+    `shlex`-based command-quoting regression guard.
+  - `tests/integration/test_compute_modal_live.py` — real connectivity smoke
+    test, skipped unless `MODAL_TOKEN_ID` + `MODAL_TOKEN_SECRET` are set.
+
 - **PR6 — RunPod cloud compute backend** (`rfdf[compute-runpod]`):
   - `rfdf.backends.compute.runpod` — `RunPodCompute` implementing the async
     `ComputeBackend` Protocol against the `runpod` Python SDK.  Auth via
