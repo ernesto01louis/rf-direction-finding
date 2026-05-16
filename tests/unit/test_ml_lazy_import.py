@@ -110,3 +110,31 @@ def test_import_rfdf_ml_models_no_torch() -> None:
     """
     err = _clean_import_check(["rfdf.ml.models"], ["torch", "torchsig", "torchvision"])
     assert not err, f"Lazy-import violated for 'rfdf.ml.models': {err}"
+
+
+def test_import_rfdf_ml_recipes_no_torch() -> None:
+    """``import rfdf.ml.recipes`` must not load torch, torchsig, or torchvision.
+
+    The recipe system is pure (stdlib + pydantic only) at module level so it
+    can be imported anywhere without the ``[ml]`` extra.
+    """
+    err = _clean_import_check(["rfdf.ml.recipes"], ["torch", "torchsig", "torchvision"])
+    assert not err, f"Lazy-import violated for 'rfdf.ml.recipes': {err}"
+
+
+def test_import_rfdf_ml_datasets_after_recipes_no_torch() -> None:
+    """``import rfdf.ml.datasets`` after importing rfdf.ml.recipes must not load torch.
+
+    Ensures that adding ``build_datasets`` to the datasets ``__init__`` did not
+    introduce a top-level torch import.
+    """
+    err = _clean_import_check(
+        ["rfdf.ml.recipes", "rfdf.ml.datasets"], ["torch", "torchsig", "torchvision"]
+    )
+    assert not err, f"Lazy-import violated for 'rfdf.ml.datasets' (post-recipes): {err}"
+
+
+def test_import_rfdf_ml_manifest_no_torch() -> None:
+    """``import rfdf.ml._manifest`` must not load torch, torchsig, or torchvision."""
+    err = _clean_import_check(["rfdf.ml._manifest"], ["torch", "torchsig", "torchvision"])
+    assert not err, f"Lazy-import violated for 'rfdf.ml._manifest': {err}"

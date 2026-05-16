@@ -1,0 +1,41 @@
+name = "sig53-resnet1d-baseline"
+
+[dataset]
+kind = "modulation"
+num_signals = 53
+num_samples_per_signal = 4096
+num_iq_samples = 1024
+impairments = "cabled"
+seed = 0
+
+[model]
+architecture = "resnet1d"
+num_classes = 53
+input_shape = [2, 1024]
+
+[model.extra_kwargs]
+depth = "resnet18"
+
+[training]
+epochs = 50
+batch_size = 128
+learning_rate = 1e-3
+optimizer = "adamw"
+scheduler = "cosine"
+warmup_steps = 200
+grad_accum_steps = 1
+amp = false
+ddp = false
+checkpoint_every_steps = 500
+keep_top_k = 3
+seed = 0
+wandb = false
+mlflow = false
+
+[compute]
+backend = "local"
+gpu_count = 1
+gpu_min_vram_gb = 8.0
+timeout_h = 6.0
+priority = "normal"
+pip_requirements = ["rfdf[ml,ml-onnx]"]

@@ -1,0 +1,40 @@
+name = "radioml-resnet2d"
+
+# dataset_path must be set to the local HDF5 file path before use.
+# Example: dataset_path = "/data/GOLD_XYZ_OSC.0001_1024.hdf5"
+[dataset]
+kind = "radioml"
+num_signals = 24
+num_iq_samples = 1024
+dataset_path = "/data/GOLD_XYZ_OSC.0001_1024.hdf5"
+snr_filter = [18, 20, 22, 24, 26, 28, 30]
+seed = 0
+
+[model]
+architecture = "resnet2d"
+num_classes = 24
+input_shape = [2, 64, 64]
+
+[training]
+epochs = 50
+batch_size = 256
+learning_rate = 1e-3
+optimizer = "adamw"
+scheduler = "cosine"
+warmup_steps = 1000
+grad_accum_steps = 2
+amp = true
+ddp = false
+checkpoint_every_steps = 1000
+keep_top_k = 3
+seed = 0
+wandb = false
+mlflow = false
+
+[compute]
+backend = "local"
+gpu_count = 1
+gpu_min_vram_gb = 16.0
+timeout_h = 12.0
+priority = "normal"
+pip_requirements = ["rfdf[ml,ml-onnx]"]
