@@ -1,0 +1,44 @@
+name = "fingerprint-finetune"
+
+# Fine-tuning recipe for RF device fingerprinting.
+# Start from a pre-trained sig53-resnet1d-baseline checkpoint
+# (set resume_from in the entrypoint or in a wrapper script).
+# dataset_path must point to a directory of labelled SigMF captures.
+# Example: dataset_path = "/data/captures/device-fingerprint/"
+[dataset]
+kind = "captured"
+num_iq_samples = 1024
+dataset_path = "/data/captures/device-fingerprint"
+seed = 7
+
+[model]
+architecture = "resnet1d"
+num_classes = 8
+input_shape = [2, 1024]
+
+[model.extra_kwargs]
+depth = "resnet34"
+
+[training]
+epochs = 20
+batch_size = 32
+learning_rate = 1e-4
+optimizer = "adamw"
+scheduler = "cosine"
+warmup_steps = 100
+grad_accum_steps = 1
+amp = false
+ddp = false
+checkpoint_every_steps = 200
+keep_top_k = 5
+seed = 7
+wandb = false
+mlflow = false
+
+[compute]
+backend = "local"
+gpu_count = 1
+gpu_min_vram_gb = 8.0
+timeout_h = 4.0
+priority = "normal"
+pip_requirements = ["rfdf[ml,ml-onnx]"]

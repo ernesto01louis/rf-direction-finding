@@ -52,6 +52,35 @@ recorded here per the release.
 - `rfdf.ml.models.build_model` — lazy factory: maps an architecture name to the right
   module via `importlib.import_module` so that `import rfdf.ml.models` never loads
   `torch`.  Raises `ModelError` for unknown names.
+- `rfdf.ml.recipes` — torch-free recipe system: `DatasetSpec`, `ModelSpec`,
+  `TrainingSpec`, `ComputeSpec`, and `TrainingRecipe` (all frozen Pydantic models).
+  `load_recipe(path)` parses a TOML file.  `TrainingRecipe.to_compute_job(working_dir)`
+  compiles the recipe into a HAL `ComputeJob`: converts `timeout_h` → `timeout_s`,
+  writes a 3-line `train.py` runpy shim, injects a JSON-serialised recipe via
+  `$RFDF_RECIPE`, and honours the XOR `container_image` / `pip_requirements` constraint.
+- `rfdf.ml._manifest` — torch-free provenance record: `TrainingManifest` (frozen
+  Pydantic), `write_manifest(manifest, path)`, and `current_git_sha()` best-effort
+  helper (returns `"unknown"` when git is unavailable).
+- `rfdf.ml.datasets.build_datasets(spec)` — dispatches on `DatasetSpec.kind` to return
+  `(train, val, test)` datasets with disjoint seed offsets for synthetic kinds.
+  All torch imports are lazy inside the function body so `rfdf.ml.datasets` stays
+  torch-free at module level.
+- `rfdf.ml.training` — backend-agnostic training loop: `train(recipe, train_dataset,
+  val_dataset, output_dir, ...)` returning `TrainingResult`.  Features: deterministic
+  seeding (random/numpy/torch/CUDA/DataLoader workers), AdamW + linear-warmup cosine
+  schedule, AMP (`autocast` + `GradScaler`), gradient accumulation, top-K checkpoint
+  retention, DDP support (`DistributedDataParallel` + `DistributedSampler`), IQ→model-
+  input adapter (2-tuple `input_shape` → `(2, N)` raw IQ; 3-tuple → `(2, F, T)` STFT
+  spectrogram), optional WandB / MLflow (lazy-imported), and `manifest.json` written on
+  completion via `rfdf.ml._manifest`.
+- `rfdf.ml.train_entrypoint` — thin `<300`-line entry point invoked as
+  `python -m rfdf.ml.train_entrypoint <recipe.toml>` or via `$RFDF_RECIPE` env var.
+  Logic lives in `rfdf.ml.training`; the entrypoint only resolves the recipe, calls
+  `build_datasets` + `train`, and prints a `"<name>: trained best_val_acc=… PASS"` line.
+- `src/rfdf/ml/recipes/` — 6 operator-ready TOML recipe templates:
+  `sig53-resnet1d-baseline`, `sig53-resnet2d-baseline`, `radioml-resnet2d`,
+  `wideband-detection-detr` (uses `transformer` architecture — DETR not yet in the
+  platform; noted as a deviation), `protocol-id-resnet2d`, `fingerprint-finetune`.
 
 ## [0.0.3] - 2026-05-15
 
