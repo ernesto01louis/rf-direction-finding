@@ -1,6 +1,6 @@
 [project]
 name = "rfdf"
-version = "0.0.4"
+version = "0.1.0a0"
 description = "Hardware-agnostic RF direction finding, signal classification, and phased-array research platform"
 authors = [{name = "Louis", email = "louis_ernesto@aol.com"}]
 license = {text = "Apache-2.0"}
