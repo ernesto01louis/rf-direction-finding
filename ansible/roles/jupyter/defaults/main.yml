@@ -1,0 +1,3 @@
+---
+# jupyter — defaults. code_server_password + jupyter_token come from the vault.
+jupyter_stack_name: jupyter

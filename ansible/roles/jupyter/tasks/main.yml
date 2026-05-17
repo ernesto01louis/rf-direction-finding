@@ -1,0 +1,21 @@
+---
+# jupyter — deploy code-server + JupyterLab on rfdf-jupyter.
+# Both images are built on-host from the stack's Dockerfiles.
+- name: Deploy the Jupyter Compose stack
+  ansible.builtin.include_role:
+    name: docker_stack
+  vars:
+    stack_name: jupyter
+    stack_env:
+      CODE_SERVER_PASSWORD: "{{ code_server_password }}"
+      JUPYTER_TOKEN: "{{ jupyter_token }}"
+
+- name: Wait for code-server (:8443) and JupyterLab (:8889)
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: "{{ item }}"
+    timeout: 240
+  loop:
+    - 8443
+    - 8889
+  delegate_to: localhost

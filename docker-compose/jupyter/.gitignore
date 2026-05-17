@@ -1,0 +1,3 @@
+# code-server / Jupyter runtime state — never committed.
+.env
+config/

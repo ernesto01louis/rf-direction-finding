@@ -1,0 +1,23 @@
+{
+  "_comment": "Example OpenWebRX+ receiver settings. Copy to settings/settings.json or configure live in the admin UI. Decoders: FT8/FT4/WSPR/JS8.",
+  "receiver_name": "rfdf OpenWebRX+",
+  "receiver_location": "Homelab",
+  "receiver_asl": 100,
+  "receiver_gps": {"lat": 0.0, "lon": 0.0},
+  "photo_title": "rfdf always-on receiver",
+  "max_clients": 20,
+  "frequency_display_precision": 4,
+  "digital_voice_dmr_id_lookup": true,
+  "waterfall_scheme": "GoogleTurboWaterfall",
+  "waterfall_levels": {"min": -88, "max": -20},
+  "sdrs": {
+    "rtlsdr": {
+      "name": "RTL-SDR (24/7 receiver)",
+      "type": "rtl_sdr",
+      "profiles": {
+        "20m": {"name": "20m FT8", "center_freq": 14095600, "rf_gain": "auto", "samp_rate": 250000, "start_freq": 14074000, "start_mod": "usb"},
+        "2m": {"name": "2m", "center_freq": 145000000, "rf_gain": "auto", "samp_rate": 2400000, "start_freq": 145500000, "start_mod": "nfm"}
+      }
+    }
+  }
+}

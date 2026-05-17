@@ -9,3 +9,5 @@ ignored:
 trustedRegistries:
   - docker.io
   - ghcr.io
+  - lscr.io      # linuxserver.io — code-server base image
+  - quay.io      # Jupyter project — scipy-notebook base image

@@ -1,0 +1,101 @@
+---
+# rf_tools — install the Linux-native RF toolchain on rfdf-tools and NFS-export
+# /opt/rftools so the kasm-ubuntu-rftools workspace can mount it.
+
+- name: Create the rftools directory tree
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ rftools_root }}"
+    - "{{ rftools_source }}"
+
+- name: Install the apt RF toolchain
+  ansible.builtin.apt:
+    name: "{{ rftools_apt_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install build prerequisites for the venv + git tools
+  ansible.builtin.apt:
+    name:
+      - git
+      - python3-venv
+      - python3-pip
+      - python3-dev
+      - build-essential
+      - cmake
+    state: present
+
+- name: Create the rftools virtualenv
+  ansible.builtin.command:
+    cmd: "python3 -m venv {{ rftools_venv }}"
+    creates: "{{ rftools_venv }}/bin/python"
+
+- name: Install the pip RF toolchain into the venv
+  ansible.builtin.pip:
+    name: "{{ rftools_pip_packages }}"
+    state: present
+    virtualenv: "{{ rftools_venv }}"
+    extra_args: "--upgrade"
+
+- name: Clone the reference / research source trees
+  ansible.builtin.git:
+    repo: "{{ item.url }}"
+    dest: "{{ rftools_source }}/{{ item.name }}"
+    version: HEAD
+    depth: 1
+    update: true
+  loop: "{{ rftools_git_repos }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Download the SatDump Debian package
+  ansible.builtin.get_url:
+    url: "{{ rftools_satdump_deb_url }}"
+    dest: /tmp/satdump.deb
+    mode: "0644"
+  register: _satdump_dl
+
+- name: Install SatDump
+  ansible.builtin.apt:
+    deb: /tmp/satdump.deb
+    state: present
+  when: _satdump_dl is succeeded
+
+- name: Deploy the rftools catalogue README
+  ansible.builtin.copy:
+    src: README.md
+    dest: "{{ rftools_root }}/README.md"
+    owner: root
+    group: root
+    mode: "0644"
+
+# --- NFS export so the Kasm rftools workspace can mount /opt/rftools --------
+- name: Install the NFS server
+  ansible.builtin.apt:
+    name: nfs-kernel-server
+    state: present
+
+- name: Export /opt/rftools to the Kasm host
+  ansible.builtin.copy:
+    dest: /etc/exports
+    content: |
+      # {{ ansible_managed }}
+      {% for client in rftools_nfs_clients %}
+      {{ rftools_root }} {{ client }}(ro,sync,no_subtree_check)
+      {% endfor %}
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload nfs exports
+
+- name: Enable and start the NFS server
+  ansible.builtin.systemd:
+    name: nfs-kernel-server
+    enabled: true
+    state: started

@@ -1,0 +1,8 @@
+---
+# 03-tools — the Linux-native RF toolchain on rfdf-tools.
+# The full catalogue installs by default; /opt/rftools is NFS-exported to Kasm.
+- name: Install the Linux RF toolchain
+  hosts: rf_tools_hosts
+  gather_facts: true
+  roles:
+    - rf_tools

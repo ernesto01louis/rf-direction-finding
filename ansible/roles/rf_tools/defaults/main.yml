@@ -1,0 +1,59 @@
+---
+# rf_tools — the Linux-native RF toolchain on rfdf-tools.
+# The full catalog installs by default (the operator chose no install gate).
+
+rftools_root: "/opt/rftools"
+rftools_venv: "/opt/rftools/venv"
+rftools_source: "/opt/rftools/source"
+
+# apt-installed GUI + CLI tools available in Debian 12.
+rftools_apt_packages:
+  - gnuradio
+  - gnuradio-dev
+  - gr-osmosdr
+  - gqrx-sdr
+  - cubicsdr
+  - rtl-sdr
+  - librtlsdr-dev
+  - hackrf
+  - libhackrf-dev
+  - multimon-ng
+  - inspectrum
+  - urh
+  - wireshark
+  - tshark
+  - kismet
+  - xnec2c
+  - nec2c
+  - gpredict
+  - dump1090-mutability
+  - rtl-433
+  - sox
+
+# pip set installed into rftools_venv.
+rftools_pip_packages:
+  - "rfdf[ml,antenna,api]"
+  - torchsig
+  - sigmf
+  - scikit-rf
+  - pynec
+  - necpp
+  - pyargus
+  - pyadi-iio
+  - nanovna-saver
+
+# git-cloned source trees (reference + research extensions).
+rftools_git_repos:
+  - { name: krakensdr_doa, url: "https://github.com/krakenrf/krakensdr_doa.git" }
+  - { name: gr-lora_sdr, url: "https://github.com/tapparelj/gr-lora_sdr.git" }
+  - { name: gr-iridium, url: "https://github.com/muccc/gr-iridium.git" }
+  - { name: AIS-catcher, url: "https://github.com/jvde-github/AIS-catcher.git" }
+  - { name: rtl_433, url: "https://github.com/merbanan/rtl_433.git" }
+
+# SatDump ships an official Debian .deb — confirm the current URL at
+# https://github.com/SatDump/SatDump/releases before a bump.
+rftools_satdump_deb_url: "https://github.com/SatDump/SatDump/releases/latest/download/satdump-ubuntu-2204-amd64.deb"
+
+# NFS export: the Kasm host mounts /opt/rftools into kasm-ubuntu-rftools.
+rftools_nfs_clients:
+  - "192.168.2.242"   # rfdf-kasm

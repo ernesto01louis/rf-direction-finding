@@ -1,0 +1,4 @@
+# OpenWebRX runtime state — never committed.
+.env
+settings/
+etc/

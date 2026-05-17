@@ -1,0 +1,8 @@
+---
+# 08-openwebrx — the always-on web SDR on rfdf-openwebrx.
+- name: Deploy OpenWebRX+
+  hosts: openwebrx_hosts
+  gather_facts: true
+  roles:
+    - docker
+    - openwebrx
