@@ -57,6 +57,9 @@ recorded here per the release.
 ### Changed
 
 - `pyproject.toml` version `0.0.3` → `0.0.4`.
+- commitlint `footer-max-line-length` softened to a warning (matching
+  `body-max-line-length`) so squash-merge commit bodies — which concatenate
+  every sub-commit message — don't fail the `conventional-commits` gate.
 
 ### Added — Stage 4 ML pipeline (PRs 1–11)
 
