@@ -1,0 +1,33 @@
+name: hardware
+
+# Hardware-in-the-loop tests. These need physical B210 / AntRunner / GRBL
+# devices on USB, so they run ONLY on a self-hosted runner that has the gear
+# attached — never on the GitHub-hosted runners. They are gated on the
+# `hardware-required` PR label so a maintainer opts in explicitly.
+#
+# The self-hosted runner provides the site-specific device config via local
+# environment variables (RFDF_B210_SERIALS, RFDF_ANTRUNNER_HOST, RFDF_GRBL_HOST);
+# none of that is committed to the repo.
+
+on:
+  pull_request:
+    types: [labeled, synchronize]
+  workflow_dispatch:
+
+jobs:
+  hardware-tests:
+    name: hardware-tests (self-hosted)
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.pull_request.labels.*.name, 'hardware-required')
+    runs-on: [self-hosted, rfdf-hardware]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dev + hardware extras
+        run: |
+          python -m pip install -U pip
+          python -m pip install -e '.[dev,sdr-uhd,rotator-antrunner,geometry-grbl]'
+      - name: pytest -m hardware
+        env:
+          RFDF_HARDWARE: "1"
+        run: pytest tests/hardware -m hardware -q

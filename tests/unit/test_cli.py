@@ -47,13 +47,20 @@ def test_hw_list_backends_emits_json_catalog() -> None:
 
 
 def test_hw_selftest_emits_json_report_and_exits_zero() -> None:
-    """`rfdf hw selftest` exercises every backend and exits 0 on success."""
-    result = _run_cli("hw", "selftest")
+    """`rfdf hw selftest --format json` exercises every backend and exits 0."""
+    result = _run_cli("hw", "selftest", "--format", "json")
     assert result.returncode == 0, result.stderr
     report = json.loads(result.stdout)
     for section in ("geometry", "rotator", "sdr", "compute"):
         assert section in report
         assert report[section]["ok"] is True, report[section]
+
+
+def test_hw_selftest_human_format_is_default() -> None:
+    """`rfdf hw selftest` defaults to the colour-coded human tree."""
+    result = _run_cli("hw", "selftest")
+    assert result.returncode == 0, result.stderr
+    assert "backends healthy" in result.stdout
 
 
 def test_config_show_table_format_default() -> None:

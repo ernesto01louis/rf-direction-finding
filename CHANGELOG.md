@@ -11,6 +11,54 @@ recorded here per the release.
 
 ## [Unreleased]
 
+## [0.1.0-alpha] - 2026-05-17
+
+The first user-facing pre-release. Stages 1-4 proved the math, the ML, and the
+multi-cloud compute on canned data; Stage 5 wires real, imperfect hardware to
+the Stage-2 HAL contracts. The API is not yet stable but the platform is fully
+functional.
+
+### Added — reference hardware backends
+
+- **B210 SDR backend** (`rfdf.backends.sdr.b210`, `[sdr-uhd]` extra) — UHD-based
+  USRP B210 with multi-device coherent capture: fatal clock/time/GPS lock
+  verification, common-PPS-edge time alignment, timed simultaneous retune, and
+  **mandatory pilot-tone recalibration after every retune** (the AD9361
+  fractional-N PLL randomizes per-channel phase). USB-topology check and a
+  25 MS/s / 240 MB/s data-rate envelope. RX-only.
+- **AntRunner rotator backend** (`rfdf.backends.rotator.antrunner`,
+  `[rotator-antrunner]` extra) — GRBL_ESP32 AZ/EL rotator over HTTP with
+  closed-loop encoder validation (`RotatorPositionError` on a mismatch),
+  homing, cable-management soft limits.
+- **GRBL linear-rail geometry backend** (`rfdf.backends.geometry.grbl_linear`,
+  `[geometry-grbl]` extra) — the morphing array: N motorized rails, on-axis
+  position projection, TOML presets, and the `measure_position_repeatability`
+  position-error-budget routine (1 mm acceptance).
+- **Shared GRBL-over-HTTP client** (`rfdf.backends._grbl`) — status + settings
+  parsers reused by the AntRunner and linear-rail backends.
+- **Contrib backends** — `contrib/rfdf-backend-rtlsdr/` (single-channel) and
+  `contrib/rfdf-backend-krakensdr/` (5-channel coherent via the Heimdall DAQ),
+  each a separate pip-installable package, NOT a dependency of core rfdf.
+- **`SdrSource.status()`** — a generic device-health probe added to the HAL
+  Protocol (implemented on every SDR backend).
+- **udev rules generator** (`rfdf.hw.udev`, `rfdf hw udev {list,generate,install}`)
+  — eliminates the "my SDR doesn't show up" friction point.
+- **`rfdf hw selftest`** extended with `--format json|human` and per-backend
+  health; **`rfdf hw geometry`** / **`rfdf hw rotator`** / **`rfdf hw
+  rotator-server`** (a Hamlib rotctld TCP server for Gpredict).
+- **`examples/05-real-b210-coherent-capture/`** — a hardware-required demo
+  (not part of the demo-no-hardware CI gate).
+- Documentation: `docs/hardware/{sdr-b210,rotator-antrunner,geometry-grbl-rails,udev-rules,contrib-backends}.md`
+  and `docs/troubleshooting.md`.
+- `tests/hardware/` — `@pytest.mark.hardware` suites, skipped unless
+  `RFDF_HARDWARE=1`; a `hardware` CI workflow runs them on a self-hosted runner
+  via the `hardware-required` PR label.
+
+### Changed
+
+- `rfdf hw selftest` now defaults to a colour-coded human report; pass
+  `--format json` for the machine-readable form.
+
 ## [0.0.4] - 2026-05-17
 
 ### Added — examples, ML documentation, and the training container
