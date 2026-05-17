@@ -1,0 +1,56 @@
+---
+# homepage — deploy the gethomepage/homepage dashboard on rfdf-dashboard.
+#
+# Bespoke (not docker_stack): the live config/*.yaml files are instantiated
+# from the committed *.example.yaml templates before the container starts.
+
+- name: Create the Homepage stack directory
+  ansible.builtin.file:
+    path: "{{ docker_stacks_root }}/homepage"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Copy the Homepage Compose stack to the host
+  ansible.builtin.copy:
+    src: "{{ compose_src_root }}/homepage/"
+    dest: "{{ docker_stacks_root }}/homepage/"
+    owner: root
+    group: root
+    mode: "0640"
+    directory_mode: "0750"
+
+- name: Find the Homepage config templates
+  ansible.builtin.find:
+    paths: "{{ docker_stacks_root }}/homepage/config"
+    patterns: "*.example.yaml"
+  register: _hp_templates
+
+- name: Instantiate the live Homepage config (operator edits survive re-runs)
+  ansible.builtin.copy:
+    src: "{{ item.path }}"
+    dest: "{{ item.path | regex_replace('\\.example\\.yaml$', '.yaml') }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0640"
+    force: false
+  loop: "{{ _hp_templates.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+
+- name: Render the Homepage .env
+  ansible.builtin.copy:
+    content: "COMPOSE_PROJECT_NAME=homepage\n"
+    dest: "{{ docker_stacks_root }}/homepage/.env"
+    owner: root
+    group: root
+    mode: "0640"
+
+- name: Deploy the Homepage Compose stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_stacks_root }}/homepage"
+    state: present
+    pull: missing
+    remove_orphans: true

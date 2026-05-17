@@ -1,0 +1,14 @@
+# Homepage info widgets (top bar) — copy to widgets.yaml.
+- resources:
+    label: dashboard host
+    cpu: true
+    memory: true
+    disk: /
+- search:
+    provider: duckduckgo
+    target: _blank
+- datetime:
+    text_size: xl
+    format:
+      timeStyle: short
+      dateStyle: short

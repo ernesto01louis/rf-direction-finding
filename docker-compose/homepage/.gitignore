@@ -1,0 +1,8 @@
+# Live config is generated from the *.example.yaml templates; not committed.
+.env
+config/services.yaml
+config/widgets.yaml
+config/settings.yaml
+config/bookmarks.yaml
+config/docker.yaml
+config/*.log
