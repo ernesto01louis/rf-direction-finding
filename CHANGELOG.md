@@ -49,6 +49,10 @@ recorded here per the release.
   - `ci.yml`: the `test-demo-no-hardware` job's install step now installs
     `.[dev,ml,ml-onnx]` so the ML smoke test runs there — a step modification,
     no gate added or removed.
+  - `rfdf ml train --gpu-count N` override — the six shipped recipes target a
+    GPU (`gpu_count = 1`); `--gpu-count 0` runs a recipe on a CPU-only host
+    with the `local` backend, so the `--compute local` sanity check is
+    runnable without a GPU.
 
 ### Changed
 
@@ -69,7 +73,7 @@ recorded here per the release.
   - `rfdf compute jobs` / `logs <job_id>` / `cancel <job_id>` — honest
     per-session job management; fresh CLI invocations always start empty and
     the commands direct operators to the provider console for persistence.
-  - `rfdf ml train --recipe <path> [--compute <backend>] [--epochs N] [--yes]`
+  - `rfdf ml train --recipe <path> [--compute <backend>] [--epochs N] [--gpu-count N] [--yes]`
     — load a TOML recipe, apply CLI overrides, print the cost estimate, and
     **require explicit confirmation** before submitting (cost-confirmation
     guardrail: never auto-submits cloud jobs without operator acknowledgement

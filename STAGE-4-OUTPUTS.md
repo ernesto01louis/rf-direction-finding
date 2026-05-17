@@ -135,14 +135,16 @@ spec'd", which is unfalsifiable.
   `rfdf.ml.training.train()` function called *directly* — which is what
   example 02 and `tests/demo_no_hardware/test_ml_pipeline_smoke.py` exercise,
   and both report a real `best_val_accuracy`.
-- **The 6 shipped recipes set `gpu_count = 1`, so `rfdf ml train --compute
-  local` fails on a CPU-only box.** `LocalCompute.submit()` raises
+- **The 6 shipped recipes set `gpu_count = 1` — a GPU job — so the PDF's exact
+  sanity command needs a `--gpu-count 0` flag on a CPU-only box.** The recipes
+  describe production GPU runs; `LocalCompute.submit()` correctly raises
   `RuntimeError: job requests 1 GPU(s) but none detected` when `nvidia-smi`
-  finds no GPU, and `rfdf ml train` exposes no `--gpu-count` override. The
-  PDF's exact sanity command therefore errors on a CPU host (see §5). This is
-  a Stage-4 CLI gap (the fix belongs in `src/rfdf/cli/ml.py`, which PR12 does
-  not touch). To run the sig53 recipe on a CPU box, copy it and set
-  `gpu_count = 0`.
+  finds no GPU. `rfdf ml train` therefore gained a `--gpu-count` override
+  (sibling to the existing `--epochs` / `--compute` overrides): `--gpu-count 0`
+  runs a GPU recipe on a CPU host with the `local` backend. The PDF's literal
+  command omits the flag and so still errors on a CPU box; run it as
+  `rfdf ml train --recipe recipes/sig53-resnet1d-baseline.toml --compute local
+  --epochs 2 --gpu-count 0 --yes` (see §5).
 - **The PDF's `sig53-resnet1d` ≥70%-top-1-in-5-min CPU sanity check is
   unrealistic for a 53-class problem on CPU.** `make_modulation_dataset`
   yields one IQ recording per class, so the sig53 recipe trains a 53-class
@@ -201,33 +203,26 @@ demo: GPU-rental walkthrough PASS
 # heavy contention reported 0.359; three uncontended runs all give 0.462 —
 # the result is deterministic, fixed-seed.)
 
-$ .venv/bin/rfdf ml train --recipe recipes/sig53-resnet1d-baseline.toml --compute local --epochs 2 --yes
-Recipe:  sig53-resnet1d-baseline
-Backend: local
-Epochs:  2  |  Batch:   128  |  GPUs:    1
-Cost estimate: low/estimated/high $0.0000 (local compute is free)
-Submitting job…
-Submission failed: RuntimeError: LocalCompute: job requests 1 GPU(s) but none detected
-# EXIT 1. The shipped recipe sets gpu_count = 1; this box (and any CPU-only
-# host) has no GPU, and `rfdf ml train` has no --gpu-count override. See §4.
-#
-# Re-run with a CPU copy of the recipe (gpu_count = 0):
-$ sed 's/^gpu_count = 1/gpu_count = 0/' recipes/sig53-resnet1d-baseline.toml > /tmp/sig53-cpu.toml
-$ .venv/bin/rfdf ml train --recipe /tmp/sig53-cpu.toml --compute local --epochs 2 --yes
+$ .venv/bin/rfdf ml train --recipe recipes/sig53-resnet1d-baseline.toml --compute local --epochs 2 --gpu-count 0 --yes
 Recipe:  sig53-resnet1d-baseline
 Backend: local
 Epochs:  2  |  Batch:   128  |  GPUs:    0
-Cost estimate: low/estimated/high $0.0000 (local compute is free)
+Cost estimate: low/estimated/high $0.0000 (rationale: local compute consumes no metered cloud resources)
 Submitting job…
-Job submitted.  Job ID: 04b28528c4f043db9762e9c3c97cdd60
-# EXIT 0 in 0.8 s. `rfdf ml train` is submit-and-return (see §4): it prints a
-# job ID and exits without waiting for training, so it never reports an
-# accuracy. The PDF's "≥70% top-1 in 5 min" sanity check is therefore not a
-# usable gate — sig53 is a 53-class problem and make_modulation_dataset yields
-# one recording per class. The genuine, accuracy-reporting CPU gate is the
-# example-02 demo (best val accuracy 0.462) and test_ml_pipeline_smoke
-# (> 0.30 assertion, 0.46 obtained), both above — they call the training loop
-# directly.
+Job submitted.  Job ID: 5e67061174a54dbaaadca46c5ac0d994
+Use rfdf compute jobs (this session) or the provider console for status.
+# EXIT 0. The shipped sig53 recipe sets gpu_count = 1 (a GPU job); --gpu-count 0
+# overrides it to run on this CPU-only box (note `GPUs:    0` in the summary).
+# Without the flag the command errors `RuntimeError: job requests 1 GPU(s) but
+# none detected` — see §4.
+#
+# `rfdf ml train` is submit-and-return (see §4): it prints a job ID and exits
+# without waiting for training, so it never reports an accuracy. The PDF's
+# "≥70% top-1 in 5 min" sanity check is therefore not a usable gate — sig53 is
+# a 53-class problem and make_modulation_dataset yields one recording per
+# class. The genuine, accuracy-reporting CPU gate is the example-02 demo (best
+# val accuracy 0.462) and test_ml_pipeline_smoke (> 0.30 assertion, 0.46
+# obtained), both above — they call the training loop directly.
 
 $ .venv/bin/rfdf compute test --backend local
 Testing backend: local

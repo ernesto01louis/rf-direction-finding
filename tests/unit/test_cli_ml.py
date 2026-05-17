@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 import pytest
@@ -201,3 +202,59 @@ def test_ml_export_missing_model_exits_nonzero(tmp_path: Path) -> None:
         env=env,
     )
     assert result.exit_code != 0
+
+
+# ---------------------------------------------------------------------------
+# train — --gpu-count override
+# ---------------------------------------------------------------------------
+
+
+def test_ml_train_gpu_count_override(tmp_path: Path) -> None:
+    """``rfdf ml train --gpu-count N`` overrides the recipe's [compute] gpu_count.
+
+    The shipped recipes target a GPU (``gpu_count = 1``); ``--gpu-count 0`` is
+    what lets ``--compute local`` run on a CPU-only host. The recipe summary
+    line echoes the *effective* (post-override) GPU count, and it is printed
+    before any torch import, so this assertion holds in the torch-free
+    ``test-base`` job too.
+    """
+    recipe = tmp_path / "gpu-recipe.toml"
+    recipe.write_text(
+        """
+name = "gpu-recipe"
+
+[dataset]
+kind = "modulation"
+num_signals = 4
+num_samples_per_signal = 16
+num_iq_samples = 64
+
+[model]
+architecture = "resnet1d"
+num_classes = 4
+input_shape = [2, 64]
+
+[training]
+epochs = 1
+batch_size = 4
+
+[compute]
+backend = "local"
+gpu_count = 1
+""",
+        encoding="utf-8",
+    )
+
+    # Without the override, the summary echoes the recipe's own gpu_count (1).
+    base = runner.invoke(
+        app, ["ml", "train", "--recipe", str(recipe), "--compute", "local", "--yes"]
+    )
+    assert re.search(r"GPUs:\s*1", base.output), base.output
+
+    # With --gpu-count 0 the summary echoes the overridden count (0) — the path
+    # that lets `--compute local` run on a CPU-only host.
+    overridden = runner.invoke(
+        app,
+        ["ml", "train", "--recipe", str(recipe), "--compute", "local", "--gpu-count", "0", "--yes"],
+    )
+    assert re.search(r"GPUs:\s*0", overridden.output), overridden.output

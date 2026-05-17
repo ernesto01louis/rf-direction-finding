@@ -76,6 +76,15 @@ def train(
             help="Override the recipe's epoch count.",
         ),
     ] = None,
+    gpu_count_override: Annotated[
+        int | None,
+        typer.Option(
+            "--gpu-count",
+            "-g",
+            help="Override the recipe's GPU count.  Pass 0 to train on CPU "
+            "with the local backend (shipped recipes default to 1 GPU).",
+        ),
+    ] = None,
     yes: Annotated[
         bool,
         typer.Option(
@@ -113,13 +122,16 @@ def train(
         raise typer.Exit(code=1) from exc
 
     # --- Apply CLI overrides -----------------------------------------------
-    if epochs_override is not None or compute_backend is not None:
+    _overrides = (epochs_override, compute_backend, gpu_count_override)
+    if any(o is not None for o in _overrides):
         # TrainingRecipe is frozen; rebuild with pydantic copy().
         recipe_data = recipe.model_dump()
         if epochs_override is not None:
             recipe_data["training"]["epochs"] = epochs_override
         if compute_backend is not None:
             recipe_data["compute"]["backend"] = compute_backend
+        if gpu_count_override is not None:
+            recipe_data["compute"]["gpu_count"] = gpu_count_override
         from rfdf.ml.recipes import TrainingRecipe
 
         recipe = TrainingRecipe.model_validate(recipe_data)
