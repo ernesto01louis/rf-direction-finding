@@ -26,15 +26,19 @@ planner-dispatched GNU Radio flowgraphs, and ntfy alerts.
 
 ## Status
 
-**v0.0.3 — DOA pipeline (prior: v0.0.2 HAL + mock backends).** The classical
-direction-of-arrival layer: Bartlett, MVDR, MUSIC, Root-MUSIC, ESPRIT, and
-Unitary ESPRIT; 2-D MUSIC; incoherent and CSSM wideband estimation;
-coherent-source spatial smoothing; the position-domain synthetic aperture;
-pilot-tone and mutual-coupling calibration; a Cramer-Rao-bound calculator
-with CRLB-bounded tests on every estimator; AIC / MDL / SORTE source
-counting; the `Doa` orchestration class and the `rfdf doa` CLI. Still fully
-drivable end-to-end with zero physical hardware. See [ROADMAP.md](ROADMAP.md)
-for what's next.
+**v0.0.4 — ML pipeline + multi-cloud GPU (prior: v0.0.3 DOA pipeline).** The
+TorchSig signal-classification layer: synthetic, RadioML 2018.01A, and SigMF
+capture dataset loaders with an augmentation framework; four model
+architectures (ResNet1D, ResNet2D, Transformer, EfficientNet-B0); a
+backend-agnostic training loop with DDP, AMP, and top-K checkpointing; five
+compute backends (`local` + RunPod, Vast.ai, Modal, SkyPilot) behind one
+`ComputeBackend` Protocol with cost-aware, confirmation-gated job submission;
+PyTorch / ONNX / HailoRT inference; ONNX / HEF / TFLite / CoreML export; a
+provenance-tracking model registry; six training recipes; and the `rfdf ml` /
+`rfdf compute` CLI command groups. All ML dependencies sit behind the `[ml]` /
+`[compute-*]` extras — the base install stays RF/ML-free. Still fully drivable
+end-to-end with zero physical hardware. See [ROADMAP.md](ROADMAP.md) for what's
+next.
 
 ## Install (zero hardware path)
 

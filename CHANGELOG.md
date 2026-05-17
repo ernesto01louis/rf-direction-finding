@@ -11,7 +11,54 @@ recorded here per the release.
 
 ## [Unreleased]
 
-### Added
+## [0.0.4] - 2026-05-17
+
+### Added — examples, ML documentation, and the training container
+
+- **PR12 — ML examples, docs, container scaffold, and the v0.0.4 release**:
+  - `examples/02-train-modulation-classifier/` — a runnable `demo.py` (not a
+    Jupyter notebook; CI-protected like `examples/01/`) that configures the
+    `local` compute backend, trains a small `resnet1d` classifier on synthetic
+    data, evaluates a held-out split, exports the model to ONNX, and runs
+    `Classifier` inference on a synthetic capture. CPU-only, fixed-seed,
+    under 60 s; ends with `demo: ML pipeline PASS`.
+  - `examples/04-rent-gpu-and-train/` — a runnable `demo.py` cloud-GPU-rental
+    walkthrough: discovers the `runpod` backend, builds a representative
+    `TrainingRecipe` / `ComputeJob`, prints RunPod's SDK-free `cost_estimate`,
+    shows the cost-confirmation gate, then runs the training on the `local`
+    backend as the compare-with-baseline step. Submits no real cloud job (no
+    credentials configured); ends with `demo: GPU-rental walkthrough PASS`.
+  - `docs/ml/` — six reference docs describing shipped reality:
+    `datasets.md`, `models.md`, `training.md`, `compute-backends.md`,
+    `registry.md`, `export.md`.
+  - `Dockerfile` (repo root) — the rfdf training image
+    (`FROM pytorch/pytorch:2.5-cuda12.1-cudnn8-runtime` + `pip install
+    .[ml,ml-onnx]`) that the cloud compute backends pull to run a job.
+  - `.github/workflows/container.yml` — a workflow that would build and push
+    `ghcr.io/ernesto01louis/rfdf-training` from the `Dockerfile`. Scaffolded
+    but **disabled** — the build-and-push job is guarded `if: false`, mirroring
+    the `publish-pypi` job in `release.yml`. No live GHCR push this stage; the
+    cloud backends use the `pip install rfdf[ml,ml-onnx]` fallback.
+  - `tests/demo_no_hardware/test_ml_pipeline_smoke.py` — the ML half of the
+    "every algorithm works on synthetic data" gate: trains a tiny `resnet1d`
+    via the real `rfdf.ml` API and asserts `best_val_accuracy` clears chance.
+    Guarded by `pytest.importorskip("torch")`.
+  - `tests/unit/test_examples.py` extended with subprocess smoke tests for the
+    02 and 04 demos (each `importorskip("torch")`); the torch-free 01 test is
+    unaffected.
+  - `ci.yml`: the `test-demo-no-hardware` job's install step now installs
+    `.[dev,ml,ml-onnx]` so the ML smoke test runs there — a step modification,
+    no gate added or removed.
+  - `rfdf ml train --gpu-count N` override — the six shipped recipes target a
+    GPU (`gpu_count = 1`); `--gpu-count 0` runs a recipe on a CPU-only host
+    with the `local` backend, so the `--compute local` sanity check is
+    runnable without a GPU.
+
+### Changed
+
+- `pyproject.toml` version `0.0.3` → `0.0.4`.
+
+### Added — Stage 4 ML pipeline (PRs 1–11)
 
 - **PR11 — `rfdf ml` and `rfdf compute` CLI command groups**:
   - `rfdf compute list` — Rich table of every discovered compute backend
@@ -26,7 +73,7 @@ recorded here per the release.
   - `rfdf compute jobs` / `logs <job_id>` / `cancel <job_id>` — honest
     per-session job management; fresh CLI invocations always start empty and
     the commands direct operators to the provider console for persistence.
-  - `rfdf ml train --recipe <path> [--compute <backend>] [--epochs N] [--yes]`
+  - `rfdf ml train --recipe <path> [--compute <backend>] [--epochs N] [--gpu-count N] [--yes]`
     — load a TOML recipe, apply CLI overrides, print the cost estimate, and
     **require explicit confirmation** before submitting (cost-confirmation
     guardrail: never auto-submits cloud jobs without operator acknowledgement
@@ -478,6 +525,8 @@ recorded here per the release.
 - **Actual PyPI publish** — workflow scaffolded; first publish at `v0.1.0` (post-Stage
   7) per the Stage 1 handoff guidance.
 
-[Unreleased]: https://github.com/ernesto01louis/rf-direction-finding/compare/v0.0.2...HEAD
+[Unreleased]: https://github.com/ernesto01louis/rf-direction-finding/compare/v0.0.4...HEAD
+[0.0.4]: https://github.com/ernesto01louis/rf-direction-finding/compare/v0.0.3...v0.0.4
+[0.0.3]: https://github.com/ernesto01louis/rf-direction-finding/releases/tag/v0.0.3
 [0.0.2]: https://github.com/ernesto01louis/rf-direction-finding/releases/tag/v0.0.2
 [0.0.1]: https://github.com/ernesto01louis/rf-direction-finding/releases/tag/v0.0.1
