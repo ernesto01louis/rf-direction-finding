@@ -82,6 +82,7 @@ rfdf = "rfdf.cli.main:app"
 [project.entry-points."rfdf.backends.sdr"]
 mock = "rfdf.backends.sdr.mock:create"
 file-replay = "rfdf.backends.sdr.file_replay:create"
+b210 = "rfdf.backends.sdr.b210:create"
 
 [project.entry-points."rfdf.backends.rotator"]
 mock = "rfdf.backends.rotator.mock:create"
@@ -156,6 +157,12 @@ ignore_errors = true
 module = ["skrf.*"]
 ignore_missing_imports = true
 
+# Stage 5 hardware SDKs ship no type stubs. Lazy-imported behind the
+# [sdr-uhd] extra; mypy treats them as Any.
+[[tool.mypy.overrides]]
+module = ["uhd.*"]
+ignore_missing_imports = true
+
 # SciPy ships no type stubs.
 [[tool.mypy.overrides]]
 module = ["scipy.*"]
@@ -207,6 +214,10 @@ branch = true
 # [ml] / [compute-*] extras are installed, which the base `coverage` job does
 # not do. They get their own 75% floor in the `coverage-ml` CI job — see
 # .coveragerc-ml. local.py stays measured here (no domain dependencies).
+#
+# Stage 5: the hardware backends drive real UHD / GRBL devices — their device
+# lifecycle cannot run in CI. Their pure helpers are unit-tested; the full
+# backend is verified by the `hardware`-marked suite on the self-hosted runner.
 omit = [
     "src/rfdf/ml/*",
     "src/rfdf/backends/compute/runpod.py",
@@ -214,6 +225,7 @@ omit = [
     "src/rfdf/backends/compute/vastai.py",
     "src/rfdf/backends/compute/skypilot.py",
     "src/rfdf/backends/compute/_remote_storage.py",
+    "src/rfdf/backends/sdr/b210.py",
 ]
 
 [tool.coverage.report]
