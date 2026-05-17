@@ -152,7 +152,7 @@ spec'd", which is unfalsifiable.
   submit-and-return behaviour above, the PDF's sanity check is not a usable
   acceptance gate. The CPU-realistic acceptance gate is the 4-class
   `test_ml_pipeline_smoke` `> 0.30` assertion (genuinely passes, ~0.46 obtained)
-  and the example-02 demo (`best val accuracy 0.462`), both of which call the
+  and the example-02 demo (`best val accuracy ~0.46`), both of which call the
   training loop directly and report a real accuracy.
 
 ## 5. Verification artifacts
@@ -186,6 +186,9 @@ training resnet1d for 12 epochs on CPU ...
   inference on a synthetic capture: predicted 'noise' (true 'noise')
 demo: ML pipeline PASS
 # wall-clock 44.7 s (under the 60 s budget; the box carries a baseline load).
+# One representative run: the best val accuracy and the single-sample
+# prediction both vary run-to-run (see the example-04 note below) — every run
+# clears the chance + 0.05 gate the demo asserts.
 
 $ .venv/bin/python examples/04-rent-gpu-and-train/demo.py
 cloud backend: runpod (supports_gpu=True)
@@ -199,15 +202,17 @@ generating synthetic signals for ['lora', 'wifi', 'bluetooth', 'noise'] ...
 training the local baseline for 12 epochs on CPU ...
   local baseline: best val accuracy 0.462 in 28.7s
 demo: GPU-rental walkthrough PASS
-# wall-clock 40.2 s. (A first run that overlapped another training job under
-# heavy contention reported 0.359; three uncontended runs all give 0.462 —
-# the result is deterministic, fixed-seed.)
+# wall-clock 40.2 s. The training is seeded but not bit-reproducible on CPU
+# (float-reduction order varies across threads): the best val accuracy varies
+# run-to-run — 0.41-0.54 observed across uncontended runs — and every run
+# clears the chance + 0.05 = 0.30 gate the demo asserts. The 0.462 shown is
+# one representative run.
 
 $ .venv/bin/rfdf ml train --recipe recipes/sig53-resnet1d-baseline.toml --compute local --epochs 2 --gpu-count 0 --yes
 Recipe:  sig53-resnet1d-baseline
 Backend: local
 Epochs:  2  |  Batch:   128  |  GPUs:    0
-Cost estimate: low/estimated/high $0.0000 (rationale: local compute consumes no metered cloud resources)
+Cost estimate [Rich table, condensed]: low $0.0000 / estimated $0.0000 / high $0.0000; rationale "local compute consumes no metered cloud resources"
 Submitting job…
 Job submitted.  Job ID: 5e67061174a54dbaaadca46c5ac0d994
 Use rfdf compute jobs (this session) or the provider console for status.
@@ -220,9 +225,10 @@ Use rfdf compute jobs (this session) or the provider console for status.
 # without waiting for training, so it never reports an accuracy. The PDF's
 # "≥70% top-1 in 5 min" sanity check is therefore not a usable gate — sig53 is
 # a 53-class problem and make_modulation_dataset yields one recording per
-# class. The genuine, accuracy-reporting CPU gate is the example-02 demo (best
-# val accuracy 0.462) and test_ml_pipeline_smoke (> 0.30 assertion, 0.46
-# obtained), both above — they call the training loop directly.
+# class. The genuine, accuracy-reporting CPU gate is the example-02 demo
+# (best val accuracy ~0.46, representative) and test_ml_pipeline_smoke (its
+# > 0.30 assertion is comfortably cleared), both above — they call the
+# training loop directly.
 
 $ .venv/bin/rfdf compute test --backend local
 Testing backend: local
@@ -232,8 +238,10 @@ $ .venv/bin/rfdf compute test --backend runpod   # + modal / vastai / skypilot
 RESULT: backend 'runpod' returned status 'submit failed (ImportError): The
 RunPod backend requires the runpod SDK; install it with: pip install
 rfdf[compute-runpod]' ...
-# modal / vastai / skypilot each report the same clean "needs SDK" status and
-# exit 0 — no crash. Only `local` runs the no-op job end-to-end.
+# runpod / modal / vastai / skypilot each report the same clean "needs SDK"
+# status and exit non-zero (1) — no crash. A non-zero exit is the `rfdf
+# compute test` contract for a job that did not reach COMPLETED; only `local`
+# runs the no-op job end-to-end and exits 0.
 ```
 
 ### Stage 4 acceptance-criteria checklist
