@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rfdf-backend-krakensdr"
+version = "0.1.0"
+description = "KrakenSDR coherent SdrSource backend for rfdf — a contrib reference example"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+authors = [{ name = "rfdf contributors" }]
+keywords = ["sdr", "krakensdr", "coherent", "rfdf", "direction-finding"]
+dependencies = [
+    "rfdf>=0.0.4",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.7", "mypy>=1.13"]
+
+# Installing this package registers `krakensdr` under the rfdf.backends.sdr
+# entry-point group — `rfdf hw list-backends` then discovers it automatically.
+[project.entry-points."rfdf.backends.sdr"]
+krakensdr = "rfdf_backend_krakensdr.source:create"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rfdf_backend_krakensdr"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
