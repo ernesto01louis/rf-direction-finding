@@ -28,6 +28,7 @@ rules:
       - ml
       - backends
       - capture
+      - hw            # hardware-support utilities (src/rfdf/hw/), added Stage 5
       - cli
       - api
       - orchestrator
