@@ -1,0 +1,82 @@
+# ---------------------------------------------------------------------------
+# infra-ci — lints + validates the Stage 6 infrastructure-as-code.
+#
+# Stage 6 adds no Python; the main ci.yml gates (zero-domain-deps,
+# demo-no-hardware, coverage, ...) are untouched. This workflow only runs when
+# the IaC tree changes.
+# ---------------------------------------------------------------------------
+name: infra-ci
+
+on:
+  push:
+    paths:
+      - "ansible/**"
+      - "docker-compose/**"
+      - ".yamllint"
+      - ".github/workflows/infra-ci.yml"
+  pull_request:
+    paths:
+      - "ansible/**"
+      - "docker-compose/**"
+      - ".yamllint"
+      - ".github/workflows/infra-ci.yml"
+
+jobs:
+  yamllint:
+    name: yamllint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install yamllint
+        run: pip install yamllint==1.38.0
+      - name: Lint the infrastructure YAML
+        run: yamllint -c .yamllint ansible/ docker-compose/
+
+  ansible-lint:
+    name: ansible-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ansible-lint
+        run: pip install 'ansible-core>=2.17' ansible-lint==26.4.0
+      - name: Install required collections
+        run: ansible-galaxy collection install -r ansible/requirements.yml
+      - name: Lint the playbooks + roles
+        working-directory: ansible
+        run: ansible-lint
+
+  compose-validate:
+    name: compose-validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate every Compose stack
+        run: |
+          set -euo pipefail
+          rc=0
+          for stack in docker-compose/*/; do
+            [ -f "${stack}compose.yml" ] || continue
+            echo "::group::validate ${stack}"
+            # Stacks reference a .env / external network for runtime only;
+            # seed a throwaway .env so `compose config` can parse them.
+            env_args=""
+            if [ -f "${stack}.env.example" ]; then
+              cp "${stack}.env.example" "${stack}.env"
+              env_args="--env-file ${stack}.env"
+            fi
+            if docker compose -f "${stack}compose.yml" ${env_args} config >/dev/null; then
+              echo "OK: ${stack}"
+            else
+              echo "::error::invalid Compose stack: ${stack}"
+              rc=1
+            fi
+            rm -f "${stack}.env"
+            echo "::endgroup::"
+          done
+          exit $rc
