@@ -18,14 +18,23 @@ from rfdf.hal import discover_backends
 
 
 def _filter_hardware(names: list[str]) -> list[str]:
-    """Drop backends that require physical hardware from CI runs.
+    """Drop backends that require physical hardware from the contract suites.
 
-    Stage 2 ships no hardware backends; this is forward-looking insurance for
-    Stage 5's UHD-based B210 backend, which will be registered with the
-    ``hardware`` Hypothesis tag.
+    The contract suites build each backend with a no-arg (or minimal) factory
+    call; the Stage 5 hardware backends need real devices (and site-specific
+    construction kwargs), so they are excluded here and verified instead by the
+    ``hardware``-marked suites under ``tests/hardware/``.
     """
-    # Stage 2 hardware skip set is empty; explicit list documents intent.
-    hardware_only = {"b210", "hackrf", "rtl-sdr", "yaesu-rotctld"}
+    hardware_only = {
+        "b210",
+        "hackrf",
+        "rtl-sdr",
+        "rtlsdr",
+        "krakensdr",
+        "yaesu-rotctld",
+        "antrunner",
+        "grbl-linear",
+    }
     return [n for n in names if n not in hardware_only]
 
 
