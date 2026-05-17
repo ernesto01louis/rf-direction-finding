@@ -318,6 +318,19 @@ class MockSdr:
             metadata=meta,
         )
 
+    async def status(self) -> dict[str, object]:
+        """Report mock device health (always 'reachable' — it is synthetic)."""
+        return {
+            "backend": "mock",
+            "reachable": True,
+            "streaming": self._running,
+            "num_channels": self.num_channels,
+            "configured": self._config is not None,
+            "coherent": self.supports_coherent,
+            "mock_b210_behavior": self._mock_b210,
+            "num_emitters": len(self._scenario.emitters),
+        }
+
     @requires_eirp_check
     async def calibration_pilot(self, freq_hz: float, power_dbm: float) -> None:
         """Add a :class:`PilotTone` emitter; EIRP cap enforced by the decorator."""
