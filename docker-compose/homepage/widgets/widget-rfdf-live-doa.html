@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<!--
+  widget-rfdf-live-doa — polls the rfdf platform's /rf/doa/latest endpoint
+  every 2 s and draws the detected bearings on a polar compass. Raw SVG, no
+  dependencies. Degrades gracefully: while the platform REST API is absent
+  (a Stage-7 deliverable) it shows a "waiting" state instead of erroring.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Live DOA</title>
+<style>
+  html,body{margin:0;height:100%;background:#0f172a;color:#cbd5e1;
+    font-family:system-ui,sans-serif}
+  .wrap{display:flex;flex-direction:column;align-items:center;padding:6px}
+  .status{font-size:11px;color:#64748b;margin-top:4px}
+  text{fill:#94a3b8;font-size:9px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <svg id="compass" viewBox="0 0 200 200" width="180" height="180"></svg>
+  <div class="status" id="status">connecting…</div>
+</div>
+<script>
+const API = "https://api.rf.lan/rf/doa/latest";
+const svg = document.getElementById("compass");
+const status = document.getElementById("status");
+const NS = "http://www.w3.org/2000/svg";
+const CX = 100, CY = 100, R = 80;
+
+function el(tag, attrs){
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  return n;
+}
+function base(){
+  svg.replaceChildren();
+  svg.appendChild(el("circle",{cx:CX,cy:CY,r:R,fill:"none",
+    stroke:"#1e293b","stroke-width":2}));
+  for (let a=0; a<360; a+=30){
+    const rad=(a-90)*Math.PI/180;
+    svg.appendChild(el("line",{x1:CX+Math.cos(rad)*(R-6),
+      y1:CY+Math.sin(rad)*(R-6),x2:CX+Math.cos(rad)*R,
+      y2:CY+Math.sin(rad)*R,stroke:"#334155"}));
+  }
+  [["N",0],["E",90],["S",180],["W",270]].forEach(([t,a])=>{
+    const rad=(a-90)*Math.PI/180;
+    const lbl=el("text",{x:CX+Math.cos(rad)*(R+10),
+      y:CY+Math.sin(rad)*(R+10),"text-anchor":"middle","dominant-baseline":"middle"});
+    lbl.textContent=t; svg.appendChild(lbl);
+  });
+}
+function bearing(deg, power){
+  const rad=(deg-90)*Math.PI/180;
+  const len=R*(0.4+0.6*Math.min(1,Math.max(0,power||0.7)));
+  svg.appendChild(el("line",{x1:CX,y1:CY,x2:CX+Math.cos(rad)*len,
+    y2:CY+Math.sin(rad)*len,stroke:"#38bdf8","stroke-width":3,
+    "stroke-linecap":"round"}));
+}
+async function tick(){
+  base();
+  try{
+    const r=await fetch(API,{cache:"no-store"});
+    if(!r.ok) throw new Error(r.status);
+    const d=await r.json();
+    const dets=(d && d.detections)||[];
+    dets.forEach(x=>bearing(x.azimuth_deg, x.power));
+    status.textContent=dets.length
+      ? dets.length+" bearing(s) — "+new Date().toLocaleTimeString()
+      : "no detections";
+  }catch(e){
+    status.textContent="waiting for platform API (Stage 7)";
+  }
+}
+tick();
+setInterval(tick, 2000);
+</script>
+</body>
+</html>

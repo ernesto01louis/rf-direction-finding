@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<!--
+  widget-rfdf-recent-captures — lists the 10 most recent SigMF captures from
+  the rfdf platform's /rf/captures/recent endpoint. No dependencies. Degrades
+  gracefully while the Stage-7 REST API is absent.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Recent captures</title>
+<style>
+  html,body{margin:0;background:#0f172a;color:#cbd5e1;
+    font-family:system-ui,sans-serif;font-size:12px}
+  ul{list-style:none;margin:0;padding:6px}
+  li{display:flex;justify-content:space-between;padding:3px 6px;
+    border-bottom:1px solid #1e293b}
+  li a{color:#38bdf8;text-decoration:none}
+  .meta{color:#64748b}
+  .status{padding:6px;color:#64748b;font-size:11px}
+</style>
+</head>
+<body>
+<ul id="list"></ul>
+<div class="status" id="status">connecting…</div>
+<script>
+const API = "https://api.rf.lan/rf/captures/recent?limit=10";
+const list = document.getElementById("list");
+const status = document.getElementById("status");
+
+async function tick(){
+  try{
+    const r=await fetch(API,{cache:"no-store"});
+    if(!r.ok) throw new Error(r.status);
+    const d=await r.json();
+    const items=(d && d.captures)||[];
+    list.replaceChildren();
+    items.slice(0,10).forEach(c=>{
+      const li=document.createElement("li");
+      const a=document.createElement("a");
+      a.href=c.url||"#"; a.textContent=c.name||c.id||"capture";
+      const m=document.createElement("span");
+      m.className="meta";
+      m.textContent=(c.center_freq_mhz?c.center_freq_mhz+" MHz · ":"")+
+        (c.recorded_at||"");
+      li.append(a,m); list.appendChild(li);
+    });
+    status.textContent=items.length
+      ? items.length+" capture(s) — "+new Date().toLocaleTimeString()
+      : "no captures yet";
+  }catch(e){
+    list.replaceChildren();
+    status.textContent="waiting for platform API (Stage 7)";
+  }
+}
+tick();
+setInterval(tick, 5000);
+</script>
+</body>
+</html>

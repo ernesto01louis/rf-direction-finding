@@ -1,0 +1,39 @@
+# Homepage — top-level dashboard for the rfdf ecosystem.
+# Standalone: `cp .env.example .env`, copy config/*.example.yaml to config/*.yaml,
+# then `docker compose up -d`. Ansible deploys it via the `homepage` role.
+name: homepage
+
+services:
+  homepage:
+    image: ghcr.io/gethomepage/homepage:v1.5.0   # pinned; bump via Renovate
+    container_name: homepage
+    restart: unless-stopped
+    environment:
+      HOMEPAGE_ALLOWED_HOSTS: "rf.lan,homepage:3000"
+    volumes:
+      - ./config:/app/config
+    networks:
+      - rfdf-edge
+    depends_on:
+      - widgets
+    healthcheck:
+      test: ["CMD", "wget", "-qO/dev/null", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Static-file sidecar serving the custom rfdf widgets; Homepage embeds them
+  # as iframe widgets. Kept separate so Homepage's own config stays declarative.
+  widgets:
+    image: nginx:1.27-alpine
+    container_name: homepage-widgets
+    restart: unless-stopped
+    volumes:
+      - ./widgets:/usr/share/nginx/html:ro
+    networks:
+      - rfdf-edge
+
+networks:
+  rfdf-edge:
+    external: true
+    name: rfdf-edge

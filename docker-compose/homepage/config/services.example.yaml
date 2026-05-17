@@ -1,0 +1,77 @@
+# Homepage services — copy to services.yaml.
+# Hostnames assume the reference rf.lan domain; iframe widgets point at the
+# widgets sidecar. Edit for your domain.
+- Quick links:
+    - Platform API (Swagger):
+        icon: si-fastapi
+        href: https://api.rf.lan/docs
+        description: rfdf REST API — available from Stage 7
+    - JupyterLab:
+        icon: si-jupyter
+        href: https://jupyter.rf.lan
+    - code-server:
+        icon: si-coder
+        href: https://code.rf.lan
+    - GNU Radio (Kasm):
+        icon: si-gnuradio
+        href: https://kasm.rf.lan
+    - OpenWebRX+:
+        icon: si-radio
+        href: https://sdr.rf.lan
+
+- Live RF:
+    - Live spectrum:
+        widget:
+          type: iframe
+          src: http://widgets/widget-rfdf-live-doa.html
+          referrerPolicy: same-origin
+    - Recent captures:
+        widget:
+          type: iframe
+          src: http://widgets/widget-rfdf-recent-captures.html
+          referrerPolicy: same-origin
+
+- Antenna design:
+    - MMANA-GAL / 4nec2 / xnec2c:
+        icon: si-wifi
+        href: https://kasm.rf.lan
+        description: Wine antenna workspace
+
+- Signal analysis:
+    - URH / inspectrum / GQRX / SDRangel:
+        icon: si-gnuradio
+        href: https://kasm.rf.lan
+        description: rftools workspace
+
+- Protocol decoders:
+    - ADS-B / AIS / ACARS / rtl_433:
+        icon: si-adafruit
+        href: https://kasm.rf.lan
+        description: rftools workspace
+
+- Direction finding:
+    - Active ML jobs:
+        widget:
+          type: iframe
+          src: http://widgets/widget-rfdf-active-jobs.html
+          referrerPolicy: same-origin
+
+- Satellite:
+    - gpredict / SatDump:
+        icon: si-spacex
+        href: https://kasm.rf.lan
+        description: rftools workspace
+
+- Infrastructure:
+    - Grafana:
+        icon: si-grafana
+        href: https://grafana.rf.lan
+    - Prometheus:
+        icon: si-prometheus
+        href: https://prometheus.rf.lan
+    - Traefik:
+        icon: si-traefikproxy
+        href: https://traefik.rf.lan
+    - Authelia:
+        icon: si-authelia
+        href: https://auth.rf.lan

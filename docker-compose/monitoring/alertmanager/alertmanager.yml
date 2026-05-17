@@ -1,0 +1,21 @@
+# Alertmanager — routes every alert to the operator's existing ntfy instance.
+#
+# The webhook posts Alertmanager's native JSON to the ntfy topic; ntfy
+# publishes it as a notification. For richer formatting an operator can drop
+# an alertmanager-ntfy transformer in front — see the monitoring README.
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: ntfy
+  group_by: ["alertname", "instance"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: ntfy
+    webhook_configs:
+      # ${NTFY_*} are substituted by Alertmanager from its environment.
+      - url: "http://192.168.2.203:8090/rfdf-infra"
+        send_resolved: true

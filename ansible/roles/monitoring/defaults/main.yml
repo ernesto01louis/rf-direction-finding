@@ -1,0 +1,3 @@
+---
+# monitoring — defaults. grafana_admin_password comes from vault/secrets.yml.
+monitoring_stack_name: monitoring

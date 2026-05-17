@@ -1,0 +1,11 @@
+# Homepage bookmarks — copy to bookmarks.yaml.
+- Reference:
+    - rfdf repo:
+        - abbr: RF
+          href: https://github.com/ernesto01louis/rf-direction-finding
+    - SigMF spec:
+        - abbr: SM
+          href: https://github.com/sigmf/SigMF
+    - KrakenSDR DOA:
+        - abbr: KS
+          href: https://github.com/krakenrf/krakensdr_doa

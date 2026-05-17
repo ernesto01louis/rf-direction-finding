@@ -1,0 +1,25 @@
+# Homepage settings — copy to settings.yaml.
+title: rfdf — RF research workshop
+theme: dark
+color: slate
+headerStyle: clean
+layout:
+  Quick links:
+    style: row
+    columns: 5
+  Live RF:
+    style: row
+    columns: 2
+  Antenna design:
+    style: column
+  Signal analysis:
+    style: column
+  Protocol decoders:
+    style: column
+  Direction finding:
+    style: column
+  Satellite:
+    style: column
+  Infrastructure:
+    style: row
+    columns: 4

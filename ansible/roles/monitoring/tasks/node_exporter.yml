@@ -1,0 +1,16 @@
+---
+# monitoring : node_exporter — install the Prometheus node exporter on a host.
+# Included per-host by the 06-dashboard monitoring play (hosts: lxc).
+
+- name: Install prometheus-node-exporter
+  ansible.builtin.apt:
+    name: prometheus-node-exporter
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Enable and start node_exporter
+  ansible.builtin.systemd:
+    name: prometheus-node-exporter
+    enabled: true
+    state: started

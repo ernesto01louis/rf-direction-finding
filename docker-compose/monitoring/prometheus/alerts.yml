@@ -1,0 +1,31 @@
+# Prometheus alerting rules — fire through Alertmanager to ntfy.
+groups:
+  - name: rfdf-host-health
+    rules:
+      - alert: HostDown
+        expr: up{job="node"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Host {{ $labels.instance }} is unreachable"
+
+      - alert: HostHighMemory
+        expr: >-
+          (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)
+          > 0.92
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memory >92% on {{ $labels.instance }}"
+
+      - alert: HostDiskFilling
+        expr: >-
+          node_filesystem_avail_bytes{mountpoint="/"}
+          / node_filesystem_size_bytes{mountpoint="/"} < 0.10
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Root filesystem <10% free on {{ $labels.instance }}"

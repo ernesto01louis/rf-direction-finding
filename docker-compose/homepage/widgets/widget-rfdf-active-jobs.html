@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<!--
+  widget-rfdf-active-jobs — lists active ML training jobs across all compute
+  backends with cost + ETA, from the rfdf platform's /rf/ml/jobs endpoint. No
+  dependencies. Degrades gracefully while the Stage-7 REST API is absent.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Active ML jobs</title>
+<style>
+  html,body{margin:0;background:#0f172a;color:#cbd5e1;
+    font-family:system-ui,sans-serif;font-size:12px}
+  ul{list-style:none;margin:0;padding:6px}
+  li{padding:4px 6px;border-bottom:1px solid #1e293b}
+  .row{display:flex;justify-content:space-between}
+  .name{color:#e2e8f0}
+  .backend{color:#38bdf8;font-size:11px}
+  .meta{color:#64748b;font-size:11px}
+  .status{padding:6px;color:#64748b;font-size:11px}
+</style>
+</head>
+<body>
+<ul id="list"></ul>
+<div class="status" id="status">connecting…</div>
+<script>
+const API = "https://api.rf.lan/rf/ml/jobs?state=active";
+const list = document.getElementById("list");
+const status = document.getElementById("status");
+
+async function tick(){
+  try{
+    const r=await fetch(API,{cache:"no-store"});
+    if(!r.ok) throw new Error(r.status);
+    const d=await r.json();
+    const jobs=(d && d.jobs)||[];
+    list.replaceChildren();
+    jobs.forEach(j=>{
+      const li=document.createElement("li");
+      const row=document.createElement("div"); row.className="row";
+      const n=document.createElement("span");
+      n.className="name"; n.textContent=j.name||j.id||"job";
+      const b=document.createElement("span");
+      b.className="backend"; b.textContent=j.backend||"";
+      row.append(n,b);
+      const m=document.createElement("div"); m.className="meta";
+      m.textContent=[
+        j.progress_pct!=null?j.progress_pct+"%":null,
+        j.cost_usd!=null?"$"+Number(j.cost_usd).toFixed(2):null,
+        j.eta||null
+      ].filter(Boolean).join(" · ");
+      li.append(row,m); list.appendChild(li);
+    });
+    status.textContent=jobs.length
+      ? jobs.length+" active job(s) — "+new Date().toLocaleTimeString()
+      : "no active jobs";
+  }catch(e){
+    list.replaceChildren();
+    status.textContent="waiting for platform API (Stage 7)";
+  }
+}
+tick();
+setInterval(tick, 5000);
+</script>
+</body>
+</html>

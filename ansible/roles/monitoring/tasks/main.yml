@@ -1,0 +1,21 @@
+---
+# monitoring — deploy the Prometheus + Grafana + Alertmanager stack on
+# rfdf-dashboard. node_exporter is installed separately (tasks/node_exporter.yml).
+
+- name: Deploy the monitoring Compose stack
+  ansible.builtin.include_role:
+    name: docker_stack
+  vars:
+    stack_name: monitoring
+    stack_env:
+      GRAFANA_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
+
+- name: Wait for Prometheus (:9090) and Grafana (:3000)
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: "{{ item }}"
+    timeout: 120
+  loop:
+    - 9090
+    - 3000
+  delegate_to: localhost
