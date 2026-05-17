@@ -1,0 +1,3 @@
+---
+# openwebrx — defaults. The admin password comes from vault/secrets.yml.
+openwebrx_admin_user: admin

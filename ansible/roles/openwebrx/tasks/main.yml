@@ -1,0 +1,17 @@
+---
+# openwebrx — deploy the always-on web SDR on rfdf-openwebrx.
+- name: Deploy the OpenWebRX+ Compose stack
+  ansible.builtin.include_role:
+    name: docker_stack
+  vars:
+    stack_name: openwebrx
+    stack_env:
+      OPENWEBRX_ADMIN_USER: "{{ openwebrx_admin_user }}"
+      OPENWEBRX_ADMIN_PASSWORD: "{{ openwebrx_admin_password }}"
+
+- name: Wait for the OpenWebRX+ web UI on :8073
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 8073
+    timeout: 120
+  delegate_to: localhost

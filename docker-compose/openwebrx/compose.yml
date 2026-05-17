@@ -1,0 +1,29 @@
+# OpenWebRX+ — always-on shared web SDR receiver.
+# Standalone: `cp .env.example .env`, then `docker compose up -d`.
+# Ansible deploys it via the `openwebrx` role on rfdf-openwebrx.
+name: openwebrx
+
+services:
+  openwebrx:
+    image: jketterl/openwebrx-full:1.2.2   # pinned; bump via Renovate
+    container_name: openwebrx
+    restart: unless-stopped
+    ports:
+      - "8073:8073"
+    # The host LXC owns a dedicated USB SDR (RTL-SDR / KrakenSDR single
+    # channel) via the proxmox_lxc usb_passthrough flag.
+    devices:
+      - "/dev/bus/usb:/dev/bus/usb"
+    volumes:
+      - ./settings:/var/lib/openwebrx
+      - ./etc:/etc/openwebrx
+    environment:
+      OPENWEBRX_ADMIN_USER: "${OPENWEBRX_ADMIN_USER:-admin}"
+      OPENWEBRX_ADMIN_PASSWORD: "${OPENWEBRX_ADMIN_PASSWORD}"
+    tmpfs:
+      - /tmp/openwebrx
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8073/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
