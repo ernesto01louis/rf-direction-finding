@@ -1,11 +1,11 @@
 """``rfdf hw`` CLI subcommands.
 
-Two subcommands:
-
 * ``rfdf hw list-backends`` — JSON dump of every entry-point-registered backend.
 * ``rfdf hw selftest`` — exercises each configured backend for ~0.1 s and emits
   a JSON status report. Exit code 0 when every backend reports ``ok=true``,
   exit 1 on any failure.
+* ``rfdf hw udev {list,generate,install}`` — generate + install the udev rules
+  that let a non-root process open a USB SDR.
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ from rfdf.hal import (
     load_backend,
 )
 from rfdf.hal.compute import ComputeJob
+from rfdf.hw import udev as udev_mod
 
 hw_app = typer.Typer(
     name="hw",
@@ -31,6 +32,50 @@ hw_app = typer.Typer(
     no_args_is_help=True,
     add_completion=False,
 )
+
+udev_app = typer.Typer(
+    name="udev",
+    help="Generate + install udev rules for supported SDR hardware.",
+    no_args_is_help=True,
+    add_completion=False,
+)
+hw_app.add_typer(udev_app, name="udev")
+
+
+@udev_app.command("list")
+def udev_list() -> None:
+    """List the devices rfdf ships udev rules for."""
+    for rule in udev_mod.KNOWN_DEVICES:
+        typer.echo(f"{rule.vendor_id}:{rule.product_id}  {rule.symlink:<14} {rule.description}")
+
+
+@udev_app.command("generate")
+def udev_generate() -> None:
+    """Print the generated udev rules file to stdout."""
+    typer.echo(udev_mod.render_rules_file(), nl=False)
+
+
+@udev_app.command("install")
+def udev_install(
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt."),
+) -> None:
+    """Install the udev rules to /etc/udev/rules.d and reload udev (needs root)."""
+    path = udev_mod.DEFAULT_RULES_PATH
+    if not udev_mod.is_root():
+        typer.echo(
+            f"error: writing {path} requires root — re-run with sudo:\n  sudo rfdf hw udev install",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+    if not yes and not typer.confirm(f"Install udev rules to {path} and reload udev?"):
+        typer.echo("aborted.")
+        raise typer.Exit(code=1)
+    try:
+        summary = udev_mod.install_rules(udev_mod.render_rules_file(), path=path)
+    except PermissionError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(summary)
 
 
 @hw_app.command("list-backends")
