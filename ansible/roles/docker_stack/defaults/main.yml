@@ -1,0 +1,14 @@
+---
+# docker_stack — reusable helper role. Deploys one docker-compose/<stack_name>/
+# stack from the repo onto a Docker host.
+#
+# Caller must set:
+#   stack_name  -- directory name under repo docker-compose/
+# Caller may set:
+#   stack_env   -- dict rendered into the stack's .env (secrets, hostnames)
+#   stack_state -- present (default) | absent | restarted
+stack_env: {}
+stack_state: present
+
+# Root of the repo's docker-compose/ tree, relative to playbooks/.
+compose_src_root: "{{ playbook_dir }}/../../docker-compose"

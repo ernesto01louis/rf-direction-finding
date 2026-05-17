@@ -1,0 +1,72 @@
+---
+# rfdf_platform — install the rfdf CLI + library into a venv on rfdf-platform.
+#
+# The REST API is a Stage-7 deliverable; this role prepares the host and ships
+# a DISABLED systemd unit so Stage 7 only has to flip rfdf_api_enabled.
+
+- name: Install build prerequisites
+  ansible.builtin.apt:
+    name:
+      - git
+      - python3-venv
+      - python3-pip
+      - python3-dev
+      - build-essential
+    state: present
+    update_cache: true
+
+- name: Create the rfdf service user
+  ansible.builtin.user:
+    name: "{{ rfdf_user }}"
+    home: "{{ rfdf_home }}"
+    shell: /usr/sbin/nologin
+    system: true
+    create_home: true
+
+- name: Create the rfdf virtualenv
+  ansible.builtin.command:
+    cmd: "python3 -m venv {{ rfdf_venv }}"
+    creates: "{{ rfdf_venv }}/bin/python"
+
+- name: Install / upgrade the rfdf package from git
+  ansible.builtin.pip:
+    name: "rfdf[{{ rfdf_extras }}] @ git+{{ rfdf_repo_url }}@{{ rfdf_repo_version }}"
+    state: forcereinstall
+    virtualenv: "{{ rfdf_venv }}"
+  notify: Restart rfdf-api
+
+- name: Fix ownership of the rfdf tree
+  ansible.builtin.file:
+    path: "{{ rfdf_home }}"
+    owner: "{{ rfdf_user }}"
+    group: "{{ rfdf_user }}"
+    recurse: true
+
+- name: Install the rfdf-api systemd unit
+  ansible.builtin.template:
+    src: rfdf-api.service.j2
+    dest: /etc/systemd/system/rfdf-api.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Flush handlers
+  ansible.builtin.meta: flush_handlers
+
+# The unit is enabled+started only when the Stage-7 API exists. Until then it
+# stays installed-but-inert — an honest placeholder, not a silent failure.
+- name: Set rfdf-api service state
+  ansible.builtin.systemd:
+    name: rfdf-api
+    enabled: "{{ rfdf_api_enabled }}"
+    state: "{{ 'started' if rfdf_api_enabled else 'stopped' }}"
+  when: rfdf_api_enabled
+
+- name: Note the deferred REST API
+  ansible.builtin.debug:
+    msg: >-
+      rfdf {{ rfdf_repo_version }} installed at {{ rfdf_venv }}. The REST API
+      (src/rfdf/api/) is a Stage-7 deliverable — rfdf-api.service is installed
+      but DISABLED. Set rfdf_api_enabled=true once the API ships.
+  when: not rfdf_api_enabled

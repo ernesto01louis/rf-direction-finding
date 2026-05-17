@@ -1,0 +1,22 @@
+# {{ ansible_managed }}
+# rfdf REST API. DISABLED until the Stage-7 API (src/rfdf/api/) is implemented.
+[Unit]
+Description=rfdf REST API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ rfdf_user }}
+WorkingDirectory={{ rfdf_home }}
+Environment=RFDF_API_HOST={{ rfdf_api_host }}
+Environment=RFDF_API_PORT={{ rfdf_api_port }}
+ExecStart={{ rfdf_api_exec }}
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths={{ rfdf_home }}
+
+[Install]
+WantedBy=multi-user.target

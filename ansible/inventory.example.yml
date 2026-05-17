@@ -1,0 +1,77 @@
+# ---------------------------------------------------------------------------
+# rfdf Stage 6 — example inventory.
+#
+# Copy to inventory.yml and edit for your network:
+#     cp inventory.example.yml inventory.yml
+#
+# Every address, hostname, VMID, and sizing value below is an EXAMPLE DEFAULT.
+# The playbooks parameterize all of it — an operator with a different network
+# edits inventory.yml and re-runs `make provision`.
+#
+# Reference network: 192.168.2.0/24, Proxmox host at 192.168.2.13.
+# IP block .239-.248 chosen as the first clean contiguous run on the reference
+# network (the brief's .220-.230 example collided with existing hosts here).
+#
+# Group layout:
+#   proxmox  -- every guest; receives group_vars/proxmox.yml (API connection)
+#     lxc    -- the 9 LXC guests        (proxmox_lxc role creates them)
+#     vm     -- the 1 Windows VM        (proxmox_vm role creates the shell)
+#   docker   -- the 5 LXCs that run Docker Compose stacks (group_vars/docker.yml)
+#   *_hosts  -- functional groups the service playbooks target
+# ---------------------------------------------------------------------------
+all:
+  vars:
+    ansible_user: root
+    ansible_ssh_private_key_file: ~/.ssh/id_ed25519
+
+  children:
+    proxmox:
+      children:
+        lxc:
+          hosts:
+            rfdf-platform: { ansible_host: 192.168.2.239, proxmox_vmid: 6239 }
+            rfdf-daq: { ansible_host: 192.168.2.240, proxmox_vmid: 6240, usb_passthrough: true }
+            rfdf-tools: { ansible_host: 192.168.2.241, proxmox_vmid: 6241 }
+            rfdf-kasm: { ansible_host: 192.168.2.242, proxmox_vmid: 6242 }
+            rfdf-guac: { ansible_host: 192.168.2.243, proxmox_vmid: 6243 }
+            rfdf-mltrain: { ansible_host: 192.168.2.245, proxmox_vmid: 6245 }
+            rfdf-dashboard: { ansible_host: 192.168.2.246, proxmox_vmid: 6246 }
+            rfdf-jupyter: { ansible_host: 192.168.2.247, proxmox_vmid: 6247 }
+            rfdf-openwebrx: { ansible_host: 192.168.2.248, proxmox_vmid: 6248 }
+        vm:
+          hosts:
+            # Win11 — the proxmox_vm role creates the VM shell + attaches the
+            # ISO; the operator installs Windows by hand once, then snapshots.
+            # See docs/infrastructure/proxmox-setup.md.
+            rfdf-winrf: { ansible_host: 192.168.2.244, proxmox_vmid: 6244 }
+
+    # Docker hosts — also members of `lxc` above. group_vars/docker.yml applies.
+    docker:
+      hosts:
+        rfdf-kasm:
+        rfdf-guac:
+        rfdf-dashboard:
+        rfdf-jupyter:
+        rfdf-openwebrx:
+
+    # Functional groups — the service playbooks target these.
+    traefik_hosts:
+      hosts: { rfdf-dashboard: }
+    authelia_hosts:
+      hosts: { rfdf-dashboard: }
+    homepage_hosts:
+      hosts: { rfdf-dashboard: }
+    monitoring_hosts:
+      hosts: { rfdf-dashboard: }
+    kasm_hosts:
+      hosts: { rfdf-kasm: }
+    guacamole_hosts:
+      hosts: { rfdf-guac: }
+    openwebrx_hosts:
+      hosts: { rfdf-openwebrx: }
+    jupyter_hosts:
+      hosts: { rfdf-jupyter: }
+    rf_tools_hosts:
+      hosts: { rfdf-tools: }
+    platform_hosts:
+      hosts: { rfdf-platform: }

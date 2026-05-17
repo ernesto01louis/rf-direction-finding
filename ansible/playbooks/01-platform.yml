@@ -1,0 +1,13 @@
+---
+# 01-platform — install the rfdf platform on the rfdf-platform host.
+#
+# NOTE: the rfdf REST API (src/rfdf/api/) is a Stage-7 deliverable and is not
+# yet implemented. This playbook installs the `rfdf` CLI + library so the host
+# is ready; the rfdf-api systemd unit ships DISABLED until Stage 7. See
+# docs/infrastructure/troubleshooting.md "rfdf REST API".
+
+- name: Install the rfdf platform
+  hosts: platform_hosts
+  gather_facts: true
+  roles:
+    - rfdf_platform

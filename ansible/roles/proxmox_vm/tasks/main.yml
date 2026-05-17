@@ -1,0 +1,53 @@
+---
+# proxmox_vm — create the Windows-11 VM shell (rfdf-winrf).
+#
+# Creates the VM definition only. Windows is installed by hand by the operator
+# (Proxmox has no reliable unattended-Windows path); the role is idempotent and
+# never touches an already-created VM's disk.
+
+- name: "Resolve effective sizing: {{ inventory_hostname }}"
+  ansible.builtin.set_fact:
+    _vm: "{{ proxmox_lxc_defaults | combine(proxmox_guest_sizing[inventory_hostname] | default({})) }}"
+
+- name: "Create Windows VM shell: {{ inventory_hostname }}"
+  community.proxmox.proxmox_kvm:
+    api_host: "{{ proxmox_api_host }}"
+    api_user: "{{ proxmox_api_user }}"
+    api_token_id: "{{ proxmox_api_token_id }}"
+    api_token_secret: "{{ proxmox_api_token_secret }}"
+    validate_certs: "{{ proxmox_api_validate_certs }}"
+    node: "{{ proxmox_node }}"
+    vmid: "{{ proxmox_vmid }}"
+    name: "{{ inventory_hostname }}"
+    ostype: "{{ proxmox_vm_ostype }}"
+    machine: "{{ proxmox_vm_machine }}"
+    bios: "{{ proxmox_vm_bios }}"
+    cores: "{{ _vm.cores }}"
+    memory: "{{ _vm.memory }}"
+    scsihw: "virtio-scsi-single"
+    # Main disk + the Windows installer ISO + the VirtIO driver ISO.
+    virtio:
+      virtio0: "{{ proxmox_storage }}:{{ _vm.disk }},format=raw"
+    ide:
+      ide2: "{{ proxmox_template_storage }}:iso/{{ proxmox_win_iso }},media=cdrom"
+      ide3: "{{ proxmox_template_storage }}:iso/{{ proxmox_vm_virtio_iso }},media=cdrom"
+    net:
+      net0: "virtio,bridge={{ proxmox_bridge }}{{ ',tag=' + proxmox_vlan_tag if proxmox_vlan_tag else '' }}"
+    efidisk0:
+      storage: "{{ proxmox_storage }}"
+      efitype: "4m"
+      pre_enrolled_keys: true
+    tpmstate0:
+      storage: "{{ proxmox_storage }}"
+      version: "v2.0"
+    onboot: true
+    state: present
+  delegate_to: localhost
+
+- name: "VM shell ready — manual Windows install required"
+  ansible.builtin.debug:
+    msg: >-
+      VM {{ inventory_hostname }} (vmid {{ proxmox_vmid }}) created. Open the
+      Proxmox console, install Windows 11 (load VirtIO storage + NIC drivers
+      from the second CD-ROM), set a static IP of {{ ansible_host }}, then
+      snapshot the VM as 'clean-install'. See docs/infrastructure/proxmox-setup.md.

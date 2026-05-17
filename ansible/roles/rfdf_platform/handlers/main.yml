@@ -1,0 +1,10 @@
+---
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restart rfdf-api
+  ansible.builtin.systemd:
+    name: rfdf-api
+    state: restarted
+  when: rfdf_api_enabled | default(false)

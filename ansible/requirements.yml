@@ -1,0 +1,13 @@
+# Ansible Galaxy collection requirements for the rfdf ecosystem.
+# Install with: ansible-galaxy collection install -r requirements.yml
+# (the `make provision` target does this automatically into ansible/collections/).
+collections:
+  - name: community.general
+    version: ">=10.0.0,<12.0.0"
+  # Proxmox modules moved out of community.general into their own collection.
+  - name: community.proxmox
+    version: ">=1.0.0,<2.0.0"
+  - name: community.docker
+    version: ">=4.0.0,<5.0.0"
+  - name: ansible.posix
+    version: ">=1.6.0,<3.0.0"

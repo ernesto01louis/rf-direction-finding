@@ -1,0 +1,40 @@
+---
+# docker_stack — copy a Compose stack to the host, render its .env, bring it up.
+# Idempotent: docker_compose_v2 reconciles to the desired state.
+
+- name: "Assert stack_name was provided"
+  ansible.builtin.assert:
+    that: stack_name is defined and stack_name | length > 0
+    fail_msg: "docker_stack requires the caller to set stack_name."
+
+- name: "Create stack directory for {{ stack_name }}"
+  ansible.builtin.file:
+    path: "{{ docker_stacks_root }}/{{ stack_name }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: "Copy the Compose stack to the host: {{ stack_name }}"
+  ansible.builtin.copy:
+    src: "{{ compose_src_root }}/{{ stack_name }}/"
+    dest: "{{ docker_stacks_root }}/{{ stack_name }}/"
+    owner: root
+    group: root
+    mode: "0640"
+    directory_mode: "0750"
+
+- name: "Render the stack .env from vault variables: {{ stack_name }}"
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ docker_stacks_root }}/{{ stack_name }}/.env"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: "Deploy the Compose stack: {{ stack_name }}"
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_stacks_root }}/{{ stack_name }}"
+    state: "{{ stack_state }}"
+    pull: missing
+    remove_orphans: true
