@@ -52,3 +52,21 @@ def tiny_sigmf(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, Path]:
     }
     meta_path.write_text(json.dumps(meta, indent=2))
     return meta_path, data_path
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """Skip ``@pytest.mark.hardware`` tests unless ``RFDF_HARDWARE=1`` is set.
+
+    Stage 5 adds tests that need a physical B210 / AntRunner / GRBL controller.
+    They are skipped on every developer machine and in the standard CI jobs;
+    the self-hosted hardware runner (see ``.github/workflows/``) sets
+    ``RFDF_HARDWARE=1`` so they execute against the attached devices.
+    """
+    import os
+
+    if os.environ.get("RFDF_HARDWARE") == "1":
+        return
+    skip_hardware = pytest.mark.skip(reason="needs physical hardware — set RFDF_HARDWARE=1 to run")
+    for item in items:
+        if "hardware" in item.keywords:
+            item.add_marker(skip_hardware)
