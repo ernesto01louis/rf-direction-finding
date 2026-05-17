@@ -101,9 +101,27 @@ class GeometrySection(BaseModel):
 
 
 class ComputeSection(BaseModel):
-    """Compute backend selection."""
+    """Compute backend selection and non-secret routing defaults.
+
+    Attributes:
+        backend: Default compute backend name (e.g. ``"local"``, ``"runpod"``).
+        default_gpu_model: Optional GPU model preference applied when a training
+            recipe does not specify one (e.g. ``"A6000"``).  ``None`` means no
+            preference — the backend selects any available GPU.
+        default_gpu_min_vram_gb: Minimum per-GPU VRAM in GB when a recipe does
+            not specify a minimum.  Default 16 GB suits most 1-D signal
+            classification models.
+        require_cost_confirmation: When ``True`` (default), ``rfdf ml train``
+            prints the cost estimate and requires explicit operator confirmation
+            (or the ``--yes`` flag) before submitting a job.  Set to ``False``
+            only in fully automated CI pipelines where a human is never present.
+            **Never auto-submit cloud jobs without understanding the cost.**
+    """
 
     backend: str = "local"
+    default_gpu_model: str | None = None
+    default_gpu_min_vram_gb: float = 16.0
+    require_cost_confirmation: bool = True
 
 
 class EirpSection(BaseModel):

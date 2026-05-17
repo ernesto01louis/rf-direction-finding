@@ -13,6 +13,36 @@ recorded here per the release.
 
 ### Added
 
+- **PR11 — `rfdf ml` and `rfdf compute` CLI command groups**:
+  - `rfdf compute list` — Rich table of every discovered compute backend
+    (via `rfdf.backends.compute` entry-points) with name, GPU support, and
+    best-effort availability status.
+  - `rfdf compute test --backend <name>` — submit a trivial no-op job to the
+    named backend; `local` runs end-to-end; cloud backends report a clear
+    "needs credentials / SDK" message rather than crashing.
+  - `rfdf compute estimate --backend <name> [--gpu-model M] [--gpu-count N]
+    [--timeout-h H]` — build a representative `ComputeJob` and print the
+    backend's `cost_estimate` (low / estimated / high + rationale).
+  - `rfdf compute jobs` / `logs <job_id>` / `cancel <job_id>` — honest
+    per-session job management; fresh CLI invocations always start empty and
+    the commands direct operators to the provider console for persistence.
+  - `rfdf ml train --recipe <path> [--compute <backend>] [--epochs N] [--yes]`
+    — load a TOML recipe, apply CLI overrides, print the cost estimate, and
+    **require explicit confirmation** before submitting (cost-confirmation
+    guardrail: never auto-submits cloud jobs without operator acknowledgement
+    unless `--yes` is passed or `compute.require_cost_confirmation = false`
+    in config).
+  - `rfdf ml registry list / show / export / import / delete` — full CRUD
+    for the local model registry backed by `rfdf.ml.registry`.
+  - `rfdf ml export <model_id> --format <onnx|hef|tflite|coreml> --output
+    <path>` — export a registered model; surfaces `ExportError` as a clean
+    CLI message.
+  - `ComputeSection` extended with `default_gpu_model`, `default_gpu_min_vram_gb`,
+    and `require_cost_confirmation` routing defaults (no credentials in config).
+  - Both CLI modules (`cli/ml.py`, `cli/compute.py`) are **torch-free at
+    module level** — `rfdf --help` remains instant and the `zero-domain-deps`
+    CI check continues to pass.
+
 - **PR10 — ML inference paths, model export pipeline, and local model registry**:
   - `rfdf.ml.inference` — `Classifier` with three inference backends:
     - **torch** (`Classifier.from_registry(..., backend="torch")`): loads a
