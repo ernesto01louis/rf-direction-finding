@@ -1,0 +1,8 @@
+---
+# 07-jupyter — JupyterLab + code-server on rfdf-jupyter.
+- name: Deploy the research scratchpad
+  hosts: jupyter_hosts
+  gather_facts: true
+  roles:
+    - docker
+    - jupyter

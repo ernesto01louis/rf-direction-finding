@@ -1,0 +1,46 @@
+# JupyterLab + code-server — the research scratchpad.
+# Standalone: `cp .env.example .env`, then `docker compose up -d --build`.
+# Ansible deploys it via the `jupyter` role on rfdf-jupyter.
+name: jupyter
+
+services:
+  code-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rfdf-code-server:local
+    container_name: code-server
+    restart: unless-stopped
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: "Europe/Berlin"
+      PASSWORD: "${CODE_SERVER_PASSWORD}"
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./config:/config
+      - notebooks:/config/notebooks
+
+  jupyterlab:
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+    image: rfdf-jupyterlab:local
+    container_name: jupyterlab
+    restart: unless-stopped
+    # JupyterLab on 8889 — 8888 is taken by Hindsight on .203
+    # (see docs/infrastructure/troubleshooting.md "port conflicts").
+    command:
+      - "start-notebook.sh"
+      - "--IdentityProvider.token=${JUPYTER_TOKEN}"
+      - "--ServerApp.port=8889"
+    ports:
+      - "8889:8889"
+    volumes:
+      - notebooks:/home/jovyan/work
+
+volumes:
+  # Bind this to the operator's TrueNAS notebooks NFS share in production —
+  # see docker-compose/jupyter/README.md.
+  notebooks:

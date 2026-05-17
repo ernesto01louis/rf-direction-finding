@@ -1,0 +1,7 @@
+# JupyterLab — Jupyter scipy-notebook with the rfdf platform pre-installed.
+FROM quay.io/jupyter/scipy-notebook:2024-12-23
+
+ARG RFDF_VERSION=v0.1.0-alpha
+
+RUN pip install --no-cache-dir \
+        "rfdf[ml] @ git+https://github.com/ernesto01louis/rf-direction-finding.git@${RFDF_VERSION}"

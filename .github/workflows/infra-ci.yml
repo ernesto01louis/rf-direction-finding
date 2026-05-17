@@ -88,11 +88,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Lint the Kasm workspace Dockerfiles
+      - name: Lint every Dockerfile under docker-compose/
         run: |
           set -euo pipefail
           rc=0
-          for df in docker-compose/kasm/dockerfiles/*/Dockerfile; do
+          for df in $(find docker-compose -type f -name 'Dockerfile*' | sort); do
             echo "::group::hadolint ${df}"
             if docker run --rm -i -v "$PWD/.hadolint.yaml:/.hadolint.yaml:ro" \
                  hadolint/hadolint:2.12.0 hadolint --config /.hadolint.yaml - < "${df}"; then
