@@ -36,6 +36,7 @@ sdr-pluto = ["pyadi-iio>=0.0.18"]
 sdr-soapy = ["SoapySDR>=0.8"]
 # --- Rotator backends ---
 rotator-hamlib = ["hamlib-py>=4.5"]
+rotator-antrunner = ["httpx>=0.27"]
 # --- ML ---
 ml = ["torch>=2.5", "torchvision>=0.20", "torchsig>=2.0", "scikit-learn>=1.5", "h5py>=3.11"]
 ml-onnx = ["onnx>=1.17", "onnxruntime>=1.20"]
@@ -69,7 +70,7 @@ docs = ["mkdocs-material>=9.5", "mkdocstrings[python]>=0.27"]
 # --- Test-only cross-validation (DOA estimators checked vs an independent library) ---
 crosscheck = ["pyargus>=1.0", "matplotlib>=3.5"]
 # --- Convenience meta-extras ---
-all-hardware = ["rfdf[sdr-uhd,sdr-pluto,sdr-soapy,rotator-hamlib]"]
+all-hardware = ["rfdf[sdr-uhd,sdr-pluto,sdr-soapy,rotator-hamlib,rotator-antrunner]"]
 all-compute = ["rfdf[compute-runpod,compute-modal,compute-vastai,compute-skypilot]"]
 all = ["rfdf[ml,ml-onnx,ml-coreml,ml-tflite,api,antenna,all-hardware,all-compute,orchestrator]"]
 
@@ -86,6 +87,7 @@ b210 = "rfdf.backends.sdr.b210:create"
 
 [project.entry-points."rfdf.backends.rotator"]
 mock = "rfdf.backends.rotator.mock:create"
+antrunner = "rfdf.backends.rotator.antrunner:create"
 
 [project.entry-points."rfdf.backends.geometry"]
 static = "rfdf.backends.geometry.static:create"
@@ -157,10 +159,11 @@ ignore_errors = true
 module = ["skrf.*"]
 ignore_missing_imports = true
 
-# Stage 5 hardware SDKs ship no type stubs. Lazy-imported behind the
-# [sdr-uhd] extra; mypy treats them as Any.
+# Stage 5 hardware SDKs + transports. uhd ships no stubs; httpx / websockets
+# ship stubs but are not installed in the lint CI job (they live behind the
+# [sdr-uhd] / [rotator-antrunner] / [geometry-grbl] extras). All lazy-imported.
 [[tool.mypy.overrides]]
-module = ["uhd.*"]
+module = ["uhd.*", "httpx.*", "websockets.*"]
 ignore_missing_imports = true
 
 # SciPy ships no type stubs.
@@ -226,6 +229,8 @@ omit = [
     "src/rfdf/backends/compute/skypilot.py",
     "src/rfdf/backends/compute/_remote_storage.py",
     "src/rfdf/backends/sdr/b210.py",
+    "src/rfdf/backends/_grbl.py",
+    "src/rfdf/backends/rotator/antrunner.py",
 ]
 
 [tool.coverage.report]
