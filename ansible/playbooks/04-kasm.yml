@@ -1,0 +1,8 @@
+---
+# 04-kasm — Kasm Workspaces server on rfdf-kasm.
+- name: Deploy Kasm Workspaces
+  hosts: kasm_hosts
+  gather_facts: true
+  roles:
+    - docker
+    - kasm

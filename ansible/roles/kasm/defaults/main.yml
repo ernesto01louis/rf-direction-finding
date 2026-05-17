@@ -1,0 +1,25 @@
+---
+# kasm — Kasm Workspaces Community Edition server.
+#
+# Kasm CE installs via its own official installer (it stands up ~7 containers:
+# api, manager, agent, db, redis, proxy, ...). A hand-written Compose file
+# cannot faithfully reproduce that, so this role drives the official installer
+# and is guarded to run exactly once. See docker-compose/kasm/README.md.
+
+# Release tarball. Hashes change per release — confirm the current URL at
+# https://www.kasmweb.com/downloads before a version bump.
+kasm_version: "1.16.1"
+kasm_release_url: "https://kasm-static-content.s3.amazonaws.com/kasm_release_1.16.1.98d6fa.tar.gz"
+
+kasm_install_root: "/opt/kasm"
+
+# CE is free for up to 5 concurrent sessions — plenty for a homelab.
+# admin/user passwords come from vault/secrets.yml.
+
+# Custom workspace images published by the kasm-images CI workflow. The Kasm
+# admin UI references these by name; the role prints them for registration.
+kasm_workspace_images:
+  - "ghcr.io/ernesto01louis/rfdf-kasm-ubuntu-rftools:latest"
+  - "ghcr.io/ernesto01louis/rfdf-kasm-ubuntu-wine-antennas:latest"
+  - "ghcr.io/ernesto01louis/rfdf-kasm-kali-rf:latest"
+  - "ghcr.io/ernesto01louis/rfdf-kasm-jupyter-rfdf:latest"

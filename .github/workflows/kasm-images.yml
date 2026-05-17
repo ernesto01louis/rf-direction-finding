@@ -1,0 +1,56 @@
+# ---------------------------------------------------------------------------
+# kasm-images — build + publish the custom Kasm workspace images to GHCR.
+#
+# Runs on every Stage-6+ tag (build + push) and on manual dispatch. The four
+# images carry heavy RF toolchains, so this is deliberately NOT a per-PR job —
+# infra-ci.yml hadolint-lints the Dockerfiles on PRs instead.
+# ---------------------------------------------------------------------------
+name: kasm-images
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    name: build-${{ matrix.workspace }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        workspace:
+          - kasm-ubuntu-rftools
+          - kasm-ubuntu-wine-antennas
+          - kasm-kali-rf
+          - kasm-jupyter-rfdf
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set image tag
+        id: tag
+        run: |
+          ref="${GITHUB_REF_NAME}"
+          [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ] && ref="manual-$(date +%Y%m%d)"
+          echo "tag=${ref}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push ${{ matrix.workspace }}
+        uses: docker/build-push-action@v6
+        with:
+          context: docker-compose/kasm/dockerfiles/${{ matrix.workspace }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/rfdf-${{ matrix.workspace }}:latest
+            ghcr.io/${{ github.repository_owner }}/rfdf-${{ matrix.workspace }}:${{ steps.tag.outputs.tag }}

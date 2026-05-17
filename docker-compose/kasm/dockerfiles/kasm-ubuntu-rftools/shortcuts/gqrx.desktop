@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=GQRX SDR
+Comment=Software-defined radio receiver
+Exec=gqrx
+Icon=gqrx
+Terminal=false
+Categories=HamRadio;Audio;

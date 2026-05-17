@@ -13,12 +13,14 @@ on:
       - "ansible/**"
       - "docker-compose/**"
       - ".yamllint"
+      - ".hadolint.yaml"
       - ".github/workflows/infra-ci.yml"
   pull_request:
     paths:
       - "ansible/**"
       - "docker-compose/**"
       - ".yamllint"
+      - ".hadolint.yaml"
       - ".github/workflows/infra-ci.yml"
 
 jobs:
@@ -77,6 +79,28 @@ jobs:
               rc=1
             fi
             rm -f "${stack}.env"
+            echo "::endgroup::"
+          done
+          exit $rc
+
+  hadolint:
+    name: hadolint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint the Kasm workspace Dockerfiles
+        run: |
+          set -euo pipefail
+          rc=0
+          for df in docker-compose/kasm/dockerfiles/*/Dockerfile; do
+            echo "::group::hadolint ${df}"
+            if docker run --rm -i -v "$PWD/.hadolint.yaml:/.hadolint.yaml:ro" \
+                 hadolint/hadolint:2.12.0 hadolint --config /.hadolint.yaml - < "${df}"; then
+              echo "OK: ${df}"
+            else
+              echo "::error::hadolint failed: ${df}"
+              rc=1
+            fi
             echo "::endgroup::"
           done
           exit $rc

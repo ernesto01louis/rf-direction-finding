@@ -1,0 +1,11 @@
+# hadolint config for the Kasm workspace Dockerfiles.
+# infra-ci.yml lints docker-compose/kasm/dockerfiles/.
+ignored:
+  # DL3008: pinning every apt package version across a 30+ RF-tool catalog is
+  # impractical and the upstream repos move; we pin base images instead.
+  - DL3008
+  # DL3013: same rationale for pip.
+  - DL3013
+trustedRegistries:
+  - docker.io
+  - ghcr.io

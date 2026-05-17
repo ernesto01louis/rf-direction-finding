@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=xnec2c
+Comment=NEC2 antenna modelling (Linux-native)
+Exec=xnec2c
+Icon=xnec2c
+Terminal=false
+Categories=HamRadio;Science;Engineering;

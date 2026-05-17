@@ -1,0 +1,59 @@
+# Apache Guacamole — HTML5 remote-desktop gateway.
+# Fronts the Win11 VM (rfdf-winrf) so Windows-only RF tools are reachable in
+# the browser. Standalone: `cp .env.example .env`, generate the DB schema (see
+# README), then `docker compose up -d`. Ansible deploys it via the `guacamole`
+# role on rfdf-guac.
+name: guacamole
+
+services:
+  postgres:
+    image: postgres:15-alpine        # pinned; bump via Renovate
+    container_name: guacamole-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: guacamole_db
+      POSTGRES_USER: guacamole
+      POSTGRES_PASSWORD: ${GUACAMOLE_DB_PASSWORD}
+    volumes:
+      - ./postgres/data:/var/lib/postgresql/data
+      - ./postgres/initdb:/docker-entrypoint-initdb.d:ro
+    networks:
+      - guac-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U guacamole -d guacamole_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  guacd:
+    image: guacamole/guacd:1.5.5
+    container_name: guacamole-guacd
+    restart: unless-stopped
+    networks:
+      - guac-internal
+
+  guacamole:
+    image: guacamole/guacamole:1.5.5
+    container_name: guacamole
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      guacd:
+        condition: service_started
+    environment:
+      GUACD_HOSTNAME: guacd
+      POSTGRESQL_HOSTNAME: postgres
+      POSTGRESQL_DATABASE: guacamole_db
+      POSTGRESQL_USER: guacamole
+      POSTGRESQL_PASSWORD: ${GUACAMOLE_DB_PASSWORD}
+      POSTGRESQL_AUTO_CREATE_ACCOUNTS: "true"
+      WEBAPP_CONTEXT: ROOT          # serve at / so Traefik routes cleanly
+    ports:
+      - "8080:8080"
+    networks:
+      - guac-internal
+
+networks:
+  guac-internal:
+    driver: bridge

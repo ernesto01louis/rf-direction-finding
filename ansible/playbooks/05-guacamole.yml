@@ -1,0 +1,12 @@
+---
+# 05-guacamole — Apache Guacamole gateway on rfdf-guac.
+#
+# The companion Win11 VM (rfdf-winrf) is created as a shell by 00-bootstrap
+# (proxmox_vm role); Windows is installed by hand — see
+# docs/infrastructure/proxmox-setup.md.
+- name: Deploy Apache Guacamole
+  hosts: guacamole_hosts
+  gather_facts: true
+  roles:
+    - docker
+    - guacamole

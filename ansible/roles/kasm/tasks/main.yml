@@ -1,0 +1,60 @@
+---
+# kasm — install Kasm Workspaces CE via the official installer.
+# Idempotent by guard: the installer runs only when Kasm is not yet present.
+
+- name: Check whether Kasm is already installed
+  ansible.builtin.stat:
+    path: "{{ kasm_install_root }}/current"
+  register: _kasm_present
+
+- name: Install Kasm Workspaces CE
+  when: not _kasm_present.stat.exists
+  block:
+    - name: Create the Kasm download directory
+      ansible.builtin.file:
+        path: /tmp/kasm-install
+        state: directory
+        mode: "0755"
+
+    - name: Download the Kasm release tarball
+      ansible.builtin.get_url:
+        url: "{{ kasm_release_url }}"
+        dest: "/tmp/kasm-install/kasm_release.tar.gz"
+        mode: "0644"
+
+    - name: Extract the Kasm release
+      ansible.builtin.unarchive:
+        src: "/tmp/kasm-install/kasm_release.tar.gz"
+        dest: "/tmp/kasm-install"
+        remote_src: true
+        creates: "/tmp/kasm-install/kasm_release/install.sh"
+
+    - name: Run the Kasm installer (non-interactive)
+      ansible.builtin.command:
+        cmd: >-
+          bash /tmp/kasm-install/kasm_release/install.sh
+          --accept-eula
+          --admin-password {{ kasm_admin_password }}
+          --user-password {{ kasm_user_password }}
+        creates: "{{ kasm_install_root }}/current"
+      no_log: true
+
+    - name: Remove the Kasm installer payload
+      ansible.builtin.file:
+        path: /tmp/kasm-install
+        state: absent
+
+- name: Wait for the Kasm web UI on :443
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 443
+    timeout: 120
+  delegate_to: localhost
+
+- name: Custom-workspace registration note
+  ansible.builtin.debug:
+    msg: >-
+      Kasm is up at https://{{ ansible_host }}/. Register the rfdf workspaces in
+      Admin -> Workspaces using these images (published by kasm-images CI):
+      {{ kasm_workspace_images | join(', ') }}.
+      See docs/workspaces/ for per-workspace usage.

@@ -1,0 +1,4 @@
+# Guacamole runtime state — never committed.
+.env
+postgres/data/
+postgres/initdb/
