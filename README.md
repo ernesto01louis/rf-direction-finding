@@ -26,19 +26,22 @@ planner-dispatched GNU Radio flowgraphs, and ntfy alerts.
 
 ## Status
 
-**v0.0.4 — ML pipeline + multi-cloud GPU (prior: v0.0.3 DOA pipeline).** The
-TorchSig signal-classification layer: synthetic, RadioML 2018.01A, and SigMF
-capture dataset loaders with an augmentation framework; four model
-architectures (ResNet1D, ResNet2D, Transformer, EfficientNet-B0); a
-backend-agnostic training loop with DDP, AMP, and top-K checkpointing; five
-compute backends (`local` + RunPod, Vast.ai, Modal, SkyPilot) behind one
-`ComputeBackend` Protocol with cost-aware, confirmation-gated job submission;
-PyTorch / ONNX / HailoRT inference; ONNX / HEF / TFLite / CoreML export; a
-provenance-tracking model registry; six training recipes; and the `rfdf ml` /
-`rfdf compute` CLI command groups. All ML dependencies sit behind the `[ml]` /
-`[compute-*]` extras — the base install stays RF/ML-free. Still fully drivable
-end-to-end with zero physical hardware. See [ROADMAP.md](ROADMAP.md) for what's
-next.
+**v0.1.0-alpha — reference hardware backends (prior: v0.0.4 ML pipeline).** The
+first user-facing pre-release. Stages 1–4 proved the math, the ML, and the
+multi-cloud compute on canned data; this stage wires real, imperfect hardware
+to the Stage-2 HAL contracts: a **USRP B210** SDR backend with multi-device
+coherent capture and mandatory pilot-tone calibration; an **AntRunner** rotator
+backend with closed-loop encoder validation; a **GRBL linear-rail** geometry
+backend with sub-mm position-error budgeting; **RTL-SDR** and **KrakenSDR**
+contrib backends as separate packages under `contrib/`; a `udev` rules
+generator; and an extended `rfdf hw` CLI (`selftest` / `geometry` / `rotator` /
+`rotator-server`). All hardware SDKs sit behind extras (`[sdr-uhd]`,
+`[rotator-antrunner]`, `[geometry-grbl]`) and are lazy-imported — the base
+install stays RF/ML/hardware-free, and the whole pipeline is still drivable
+end-to-end with zero physical hardware via the mock backends. The API is not
+yet stable but the platform is fully functional. See
+[STAGE-5-OUTPUTS.md](STAGE-5-OUTPUTS.md) and [ROADMAP.md](ROADMAP.md) for
+what's next.
 
 ## Install (zero hardware path)
 
