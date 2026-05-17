@@ -11,6 +11,44 @@ recorded here per the release.
 
 ## [Unreleased]
 
+## [0.1.0-beta] - 2026-05-17
+
+Stage 6 — the operator-facing software ecosystem. Pure infrastructure: the
+platform core has **not** changed (`git diff v0.1.0-alpha..v0.1.0-beta -- src/`
+is empty). Hosted alongside `rfdf`, never depended on by it.
+
+### Added — Ansible-provisioned tool ecosystem
+
+- Ansible playbook tree (`ansible/`): inventory, group_vars, `ansible-vault`
+  secrets, 14 roles, 10 playbooks (`00-bootstrap` … `08-openwebrx` +
+  `99-verify`). Idempotent, parameterised, `make provision` / `make
+  infra-verify`.
+- Docker Compose stacks (`docker-compose/`): Traefik v3, Authelia, Guacamole,
+  OpenWebRX+, JupyterLab + code-server, Homepage, Prometheus/Grafana/
+  Alertmanager — each standalone-runnable.
+- Kasm Workspaces CE server + four custom workspace images
+  (`ubuntu-rftools`, `ubuntu-wine-antennas`, `kali-rf`, `jupyter-rfdf`),
+  built + pushed to GHCR by the `kasm-images` workflow.
+- Apache Guacamole + a Win11 VM template for vendor-locked Windows-only tools.
+- Homepage dashboard with custom live-DOA / recent-captures / active-ML-jobs
+  widgets (raw SVG/JS, no build step).
+- Authelia OIDC SSO with ForwardAuth on every Traefik route; 2FA via TOTP.
+- Traefik v3 reverse proxy, file-based dynamic config.
+- Tailscale integration (optional) on every host, with ACL examples.
+- Prometheus + Grafana monitoring with pre-built dashboards and an
+  Alertmanager → ntfy bridge.
+- `infra-ci` workflow (yamllint + ansible-lint + `docker compose config` +
+  hadolint); `kasm-images` workflow; `infra` commit scope.
+- Documentation: `docs/infrastructure/` (8 files) + `docs/workspaces/` (4).
+
+### Notes
+
+- The reference IP plan is `.239–.248` (the brief's `.220–.230` example
+  collided with existing hosts on the reference network).
+- The rfdf REST API (`src/rfdf/api/`) is a Stage-7 deliverable; its ingress
+  route, the `99-verify` `/healthz` check, and the Homepage live-RF widgets
+  are provisioned but inert until then.
+
 ## [0.1.0-alpha] - 2026-05-17
 
 The first user-facing pre-release. Stages 1-4 proved the math, the ML, and the

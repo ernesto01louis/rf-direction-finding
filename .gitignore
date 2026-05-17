@@ -97,7 +97,7 @@ site/
 ansible/collections/
 ansible/.vault-pass
 ansible/inventory.yml
-ansible/vault/secrets.yml
+ansible/group_vars/all/vault.yml
 *.retry
 # Compose runtime state (the .example/config files ARE tracked).
 docker-compose/**/data/

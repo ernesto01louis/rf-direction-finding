@@ -85,13 +85,15 @@ domain libraries appear in `sys.modules` after `import rfdf`.
 
 ## Stage status
 
-Stages 1–4 are shipped and tagged (`v0.0.1` … `v0.0.4`). Stage 4 added the
-`rfdf.ml` signal-classification package (datasets, augmentation, four model
-architectures, the backend-agnostic training loop, inference, export, the model
-registry) plus five compute backends (`local` + RunPod / Vast.ai / Modal /
-SkyPilot) and the `rfdf ml` / `rfdf compute` CLI groups — all behind the `[ml]`
-and `[compute-*]` extras, lazy-imported so the base install stays RF/ML-free.
-Stage 5 (reference hardware backends, `v0.1.0-alpha`) is next.
+Stages 1–6 are shipped and tagged (`v0.0.1` … `v0.1.0-beta`). Stage 4 added the
+`rfdf.ml` signal-classification package plus five compute backends; Stage 5
+(`v0.1.0-alpha`) added the reference hardware backends (B210, AntRunner, GRBL
+rails). Stage 6 (`v0.1.0-beta`) is **pure infrastructure** — the
+Ansible-provisioned tool ecosystem under `ansible/` + `docker-compose/` (Kasm,
+Guacamole, OpenWebRX+, JupyterLab, Homepage, Traefik, Authelia, monitoring).
+No `src/rfdf/` changes (`git diff v0.1.0-alpha..v0.1.0-beta -- src/` is empty);
+see `STAGE-6-OUTPUTS.md` and `docs/infrastructure/`. Stage 7 (orchestrator
+integration + PyPI publish + the REST API, `v0.1.0` GA) is next.
 
 ## Caveats
 

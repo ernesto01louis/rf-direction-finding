@@ -1,0 +1,129 @@
+---
+# 99-verify — end-to-end smoke tests for the rfdf ecosystem.
+#
+# Run after a full `make provision` (or via `make infra-verify`). Every check
+# is an explicit assert — there are no silent `failed_when: false` guards.
+# Checks for services that depend on the Stage-7 rfdf REST API are gated on
+# `platform_api_enabled` and report an explicit SKIP, not a false pass.
+
+# --- 1. Every LXC is reachable + exports node metrics ----------------------
+- name: Verify every LXC is reachable
+  hosts: lxc
+  gather_facts: false
+  tasks:
+    - name: Ping the host
+      ansible.builtin.ping:
+
+    - name: Confirm node_exporter is answering
+      ansible.builtin.uri:
+        url: "http://{{ ansible_host }}:9100/metrics"
+        status_code: 200
+      delegate_to: localhost
+
+# --- 2. Service endpoints (checked from the dashboard host) ----------------
+- name: Verify the ecosystem services
+  hosts: rfdf-dashboard
+  gather_facts: false
+  vars:
+    platform_api_enabled: false
+    dashboard_ip: "{{ ansible_host }}"
+  tasks:
+    - name: Traefik is serving HTTPS
+      ansible.builtin.uri:
+        url: "https://{{ dashboard_ip }}/"
+        validate_certs: false
+        status_code: [200, 301, 302, 401, 404]
+
+    - name: Authelia portal responds (via Traefik)
+      ansible.builtin.uri:
+        url: "https://{{ dashboard_ip }}/"
+        headers: { Host: "auth.rf.lan" }
+        validate_certs: false
+        status_code: [200, 302]
+
+    - name: Homepage responds (via Traefik)
+      ansible.builtin.uri:
+        url: "https://{{ dashboard_ip }}/"
+        headers: { Host: "rf.lan" }
+        validate_certs: false
+        status_code: [200, 302, 401]
+
+    - name: Kasm web UI is up
+      ansible.builtin.uri:
+        url: "https://{{ hostvars['rfdf-kasm'].ansible_host }}/"
+        validate_certs: false
+        status_code: [200, 302]
+
+    - name: Guacamole is up
+      ansible.builtin.uri:
+        url: "http://{{ hostvars['rfdf-guac'].ansible_host }}:8080/"
+        status_code: [200, 302]
+
+    - name: OpenWebRX+ is producing a UI
+      ansible.builtin.uri:
+        url: "http://{{ hostvars['rfdf-openwebrx'].ansible_host }}:8073/"
+        status_code: 200
+
+    - name: JupyterLab is up
+      ansible.builtin.uri:
+        url: "http://{{ hostvars['rfdf-jupyter'].ansible_host }}:8889/"
+        status_code: [200, 302]
+
+    - name: Verify code-server is up
+      ansible.builtin.uri:
+        url: "http://{{ hostvars['rfdf-jupyter'].ansible_host }}:8443/"
+        status_code: [200, 302]
+
+    - name: Prometheus is healthy
+      ansible.builtin.uri:
+        url: "http://{{ dashboard_ip }}:9090/-/healthy"
+        status_code: 200
+
+    - name: Prometheus has at least one node target up
+      ansible.builtin.uri:
+        url: "http://{{ dashboard_ip }}:9090/api/v1/targets?state=active"
+        return_content: true
+      register: _prom_targets
+      failed_when: >-
+        _prom_targets.json.data.activeTargets
+        | selectattr('labels.job', 'equalto', 'node')
+        | selectattr('health', 'equalto', 'up') | list | length < 1
+
+    - name: Grafana is healthy
+      ansible.builtin.uri:
+        url: "http://{{ dashboard_ip }}:3000/api/health"
+        status_code: 200
+
+    - name: Grafana has the pre-built dashboards
+      ansible.builtin.uri:
+        url: "http://{{ dashboard_ip }}:3000/api/search?type=dash-db"
+        url_username: admin
+        url_password: "{{ grafana_admin_password }}"
+        force_basic_auth: true
+        return_content: true
+      register: _graf_dash
+      failed_when: _graf_dash.json | length < 2
+
+    - name: Check the rfdf REST API /healthz (Stage-7, only when enabled)
+      ansible.builtin.uri:
+        url: "http://{{ hostvars['rfdf-platform'].ansible_host }}:8000/healthz"
+        status_code: 200
+      when: platform_api_enabled | bool
+
+    - name: SKIP — rfdf REST API is a Stage-7 deliverable
+      ansible.builtin.debug:
+        msg: >-
+          /healthz check skipped — the rfdf REST API (src/rfdf/api/) ships in
+          Stage 7. Set platform_api_enabled=true once it is live.
+      when: not (platform_api_enabled | bool)
+
+    - name: Fire a test alert into ntfy
+      ansible.builtin.uri:
+        url: "{{ ntfy_base_url }}/{{ ntfy_topic }}"
+        method: POST
+        body: "rfdf 99-verify: ecosystem smoke test reached the ntfy bridge."
+        status_code: 200
+
+    - name: All checks passed
+      ansible.builtin.debug:
+        msg: "rfdf ecosystem verify — all checks green."

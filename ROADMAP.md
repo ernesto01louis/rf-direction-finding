@@ -9,8 +9,8 @@ with a git tag and a CHANGELOG entry.
 | 2 | DONE | `v0.0.2` | HAL Protocol classes + mock + SigMF file-replay backends |
 | 3 | DONE | `v0.0.3` | Classical DOA (MUSIC, ESPRIT, Bartlett, MVDR) + calibration + CRLB tests |
 | 4 | DONE | `v0.0.4` | TorchSig ML pipeline + multi-cloud compute backends + model registry |
-| 5 | PLANNED | `v0.1.0-alpha` | Reference hardware backends (B210, AntRunner, GRBL rails) |
-| 6 | PLANNED | `v0.1.0-beta` | Ansible-provisioned tool ecosystem (Kasm, Guacamole, Authelia, Homepage) |
+| 5 | DONE | `v0.1.0-alpha` | Reference hardware backends (B210, AntRunner, GRBL rails) |
+| 6 | DONE | `v0.1.0-beta` | Ansible-provisioned tool ecosystem (Kasm, Guacamole, Authelia, Homepage) |
 | 7 | PLANNED | `v0.1.0` | Optional orchestrator integration + PyPI publish |
 
 ## Stage 1 — Repository scaffold and conventions (`v0.0.1`)
@@ -81,16 +81,29 @@ with a git tag and a CHANGELOG entry.
 - `rfdf hw selftest` extended with real-hardware checks
 - Branch protection enabled on `main` (deferred from Stage 1)
 
-## Stage 6 — Tool ecosystem hosting (`v0.1.0-beta`)
+## Stage 6 — Tool ecosystem hosting (`v0.1.0-beta`) — DONE
 
-**Acceptance criteria:**
+Shipped 2026-05-17 across five PRs (#38–#42), tag `v0.1.0-beta`. Pure
+infrastructure — `git diff v0.1.0-alpha..v0.1.0-beta -- src/` is empty.
 
-- Ansible playbooks for Proxmox-based deployment
-- Docker Compose stacks: Homepage, Traefik, Authelia, Kasm, Guacamole, OpenWebRX+,
-  JupyterLab, Prometheus/Grafana
-- Kasm custom workspace images (Linux RF tools + Wine-based MMANA-GAL Pro + Kali RF)
-- Authelia OIDC SSO across all services
-- Zero changes to `src/rfdf/` — pure infrastructure stage
+**Delivered:**
+
+- Ansible playbook tree (`ansible/`) — 14 roles, 10 playbooks, idempotent +
+  parameterised; `make provision` / `make infra-verify`.
+- Docker Compose stacks (`docker-compose/`) — Traefik, Authelia, Guacamole,
+  OpenWebRX+, JupyterLab/code-server, Homepage, Prometheus/Grafana/Alertmanager.
+- Four Kasm custom workspace images, published to GHCR by `kasm-images` CI.
+- Authelia SSO (ForwardAuth on every route) + OIDC provider.
+- Traefik v3 file-provider ingress; Tailscale (optional) on every host.
+- Homepage dashboard with three custom live-RF widgets.
+- Prometheus + Grafana + Alertmanager→ntfy monitoring.
+- `99-verify` end-to-end smoke playbook; `docs/infrastructure/` (8) +
+  `docs/workspaces/` (4).
+
+**Notes:** the IP plan shifted to `.239–.248` (the brief's `.220–.230`
+collided with existing hosts). The rfdf REST API is a Stage-7 deliverable —
+its ingress route, `/healthz` verify check, and the live-RF widgets are
+provisioned but inert until Stage 7.
 
 ## Stage 7 — Orchestrator integration + GA (`v0.1.0`)
 
