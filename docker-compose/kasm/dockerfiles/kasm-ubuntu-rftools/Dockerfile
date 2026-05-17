@@ -9,7 +9,16 @@ FROM kasmweb/core-ubuntu-jammy:1.16.1
 USER root
 ENV DEBIAN_FRONTEND=noninteractive
 
+# The kasm core-ubuntu-jammy base ships a trimmed sources.list — enable the
+# `universe` component so kismet et al. resolve.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        software-properties-common \
+    && add-apt-repository -y universe \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # RF GUI toolchain available in the Ubuntu 22.04 repositories.
+# nanovna-saver is NOT an apt package — it is pip-installed in the rftools
+# venv (NFS-mounted at /opt/rftools), so it is not listed here.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         gnuradio \
         gnuradio-dev \
@@ -29,7 +38,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         nec2c \
         gpredict \
         dump1090-mutability \
-        nanovna-saver \
         pipx \
         python3-pip \
     && apt-get clean \

@@ -4,6 +4,13 @@ FROM kasmweb/core-kali-rolling:1.16.1
 USER root
 ENV DEBIAN_FRONTEND=noninteractive
 
+# The base image's bundled Kali archive key rotates out of date — refresh the
+# kali-archive-keyring before doing anything else.
+RUN apt-get update --allow-insecure-repositories \
+    && apt-get install -y --no-install-recommends --allow-unauthenticated \
+        kali-archive-keyring \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # RF + wireless-security toolchain from the Kali repositories.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         gnuradio \
