@@ -34,7 +34,12 @@ reproducible from a seed.
   augmentation, seed)`** — generates one IQ recording per modulation class
   (`num_signals` classes drawn from the TorchSig catalogue in class-index
   order; the 2.1.x catalogue is ≈53 classes). `num_samples_per_signal` is the
-  IQ length of each recording.
+  IQ length of each recording. Long recordings are slow to synthesise, and
+  TorchSig's modulation generators occasionally raise `ValueError: Passband
+  ripple was unable to meet ripple specs` from SciPy's filter design for
+  certain class/length combinations — retry with a different `seed` if you
+  hit it. For a fast classification dataset with many samples per class,
+  prefer `make_protocol_dataset`.
 - **`make_protocol_dataset(protocols, num_samples_per_protocol, num_iq_samples,
   impairments, augmentation, seed)`** — generates `num_samples_per_protocol`
   recordings per protocol. Default protocols are `lora`, `zigbee`, `wifi`,
