@@ -28,7 +28,7 @@ License: **Apache-2.0** (`LICENSE` at repo root).
 | [ROADMAP.md](ROADMAP.md) | Stages 1–7 with status |
 | [SECURITY.md](SECURITY.md) | Threat model + secret handling |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Dev setup + commit conventions |
-| `STAGE-N-OUTPUTS.md` (per stage) | **Real shipped state** for each completed stage — read at session start to know what's actually true, not what was *planned*. Latest: [STAGE-1-OUTPUTS.md](STAGE-1-OUTPUTS.md). Convention defined in [STAGE-1-OUTPUTS.md §7](STAGE-1-OUTPUTS.md#7-convention-for-future-stages). |
+| `STAGE-N-OUTPUTS.md` (per stage) | **Real shipped state** for each completed stage — read at session start to know what's actually true, not what was *planned*. Latest: [STAGE-4-OUTPUTS.md](STAGE-4-OUTPUTS.md). Convention defined in [STAGE-1-OUTPUTS.md §7](STAGE-1-OUTPUTS.md#7-convention-for-future-stages). |
 
 ## Coding conventions
 
@@ -83,12 +83,22 @@ principle is broken.
 CI enforces this via the `zero-domain-deps` job: installs the base package, asserts no
 domain libraries appear in `sys.modules` after `import rfdf`.
 
+## Stage status
+
+Stages 1–4 are shipped and tagged (`v0.0.1` … `v0.0.4`). Stage 4 added the
+`rfdf.ml` signal-classification package (datasets, augmentation, four model
+architectures, the backend-agnostic training loop, inference, export, the model
+registry) plus five compute backends (`local` + RunPod / Vast.ai / Modal /
+SkyPilot) and the `rfdf ml` / `rfdf compute` CLI groups — all behind the `[ml]`
+and `[compute-*]` extras, lazy-imported so the base install stays RF/ML-free.
+Stage 5 (reference hardware backends, `v0.1.0-alpha`) is next.
+
 ## Caveats
 
 *(Populated as discovered. Add gotchas here so future sessions don't relearn them.)*
 
-- **Stage 1 (current):** Branch protection on `main` is deferred — solo operator chose
-  faster iteration during scaffold/algo work. Revisit before Stage 5.
+- **Branch protection on `main` is deferred** — solo operator chose faster
+  iteration during scaffold/algo/ML work (Stages 1–4). Revisit before Stage 5.
 - **B210 fractional-N PLL retune phase randomization** (Stage 5): coherent operation
   *requires* pilot-tone calibration after every retune. The mock SDR (Stage 2) models
   this via `mock_b210_behavior=True` so calibration code can be developed against it.
