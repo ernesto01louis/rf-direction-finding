@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=GNU Radio Companion
+Comment=Flowgraph-based SDR development
+Exec=gnuradio-companion
+Icon=gnuradio-grc
+Terminal=false
+Categories=Development;HamRadio;

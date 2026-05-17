@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=JupyterLab (rfdf)
+Comment=JupyterLab with the rfdf platform pre-installed
+Exec=/opt/rfdf/bin/jupyter lab
+Icon=utilities-terminal
+Terminal=true
+Categories=Development;Science;

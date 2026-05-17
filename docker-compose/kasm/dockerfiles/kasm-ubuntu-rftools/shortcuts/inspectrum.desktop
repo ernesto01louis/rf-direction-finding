@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=inspectrum
+Comment=Offline radio signal analyser
+Exec=inspectrum
+Icon=inspectrum
+Terminal=false
+Categories=HamRadio;Science;
