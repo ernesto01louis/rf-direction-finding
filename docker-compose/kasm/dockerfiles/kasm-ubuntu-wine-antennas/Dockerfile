@@ -28,10 +28,13 @@ RUN dpkg --add-architecture i386 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Pre-seed a Wine prefix with the runtime the antenna tools expect.
+# Pre-seed a Wine prefix. The winetricks verb downloads (corefonts, vcrun2019)
+# are best-effort — winetricks' upstream verb URLs rot, and MMANA-GAL / 4nec2
+# run without them — so a failed verb fetch must not break the image build.
 ENV WINEPREFIX=/opt/wineprefix WINEARCH=win64 WINEDEBUG=-all
 RUN wineboot --init \
-    && winetricks -q corefonts vcrun2019 \
+    && (winetricks -q corefonts vcrun2019 \
+        || echo "winetricks pre-seed skipped — install verbs in-workspace if needed") \
     && wineserver -w
 
 # Pull the freeware installers at build time (skipped when the arg is empty).
