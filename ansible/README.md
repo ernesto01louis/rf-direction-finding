@@ -10,11 +10,11 @@ the ecosystem is operator quality-of-life, hosted *alongside* the platform.
 ## Quick start
 
 ```sh
-# 1. Install collections + copy the templates
-cp inventory.example.yml inventory.yml          # edit IPs/VMIDs for your network
-cp vault/secrets.example.yml vault/secrets.yml  # fill in real secrets
-ansible-vault encrypt vault/secrets.yml
-echo "<vault-password>" > .vault-pass           # git-ignored
+# 1. Copy the templates
+cp inventory.example.yml inventory.yml                  # edit IPs/VMIDs
+cp vault/secrets.example.yml group_vars/all/vault.yml   # fill in real secrets
+ansible-vault encrypt group_vars/all/vault.yml
+echo "<vault-password>" > .vault-pass                   # git-ignored
 
 # 2. Provision everything (from the repo root)
 make provision
@@ -36,8 +36,11 @@ ansible/
   ansible.cfg              # inventory, roles, vault-password-file
   inventory.example.yml    # the host tree — copy to inventory.yml
   requirements.yml         # Galaxy collections
-  group_vars/              # all.yml / proxmox.yml / docker.yml
-  vault/secrets.example.yml# template for the encrypted vault
+  group_vars/
+    all/main.yml           # shared non-secret vars
+    all/vault.yml          # encrypted secrets (git-ignored; auto-loaded)
+    proxmox.yml docker.yml # per-group vars
+  vault/secrets.example.yml# template -> copy to group_vars/all/vault.yml
   playbooks/
     00-bootstrap.yml       # create the LXC/VM tree + base OS config
     01-platform.yml        # install the rfdf platform

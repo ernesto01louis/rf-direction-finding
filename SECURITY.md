@@ -105,3 +105,51 @@ first contact unless an active exploit is in the wild.
   protection once enabled).
 - **Pre-commit hooks** include `detect-private-key` to catch accidental secret commits.
 - **Dependabot** is configured for security advisories only (Stage 1).
+
+## 9. Infrastructure secrets (ansible-vault)
+
+The Stage 6 ecosystem deployment (`ansible/`) handles its own secrets —
+Proxmox API token, Authelia keys, Grafana/Kasm/Guacamole/OpenWebRX passwords,
+the Tailscale auth key. **None of these are committed in plaintext.**
+
+**Decision: `ansible-vault` (not SOPS).** The orchestrator-consumer platform
+secrets (§2) stay as `.env`; the infrastructure-as-code secrets use
+`ansible-vault` because Ansible decrypts vaulted vars transparently at run
+time. Two encryption schemes for two distinct concerns is acceptable; each is
+documented in exactly one place (§2 here, this section, and
+`docs/operational-decisions.md`).
+
+- The real secrets live in `ansible/group_vars/all/vault.yml`, encrypted with
+  `ansible-vault` and **git-ignored**. `ansible/vault/secrets.example.yml` is
+  the committed plaintext **template** (placeholder values only — the
+  `detect-private-key` hook would block a real key).
+- The vault password lives in `ansible/.vault-pass` (git-ignored, `chmod 600`).
+  `make provision` exports `ANSIBLE_VAULT_PASSWORD_FILE`; the password file is
+  never committed and never leaves the operator's host.
+- Rotating a secret: edit `vault.yml` via `ansible-vault edit`, re-run the
+  relevant playbook. Rotating the vault password: `ansible-vault rekey`.
+
+When a second contributor joins, the vault password is shared out-of-band (not
+via the repo); a shared-key upgrade to `ansible-vault` with multiple vault IDs
+is the expected path.
+
+## 10. Tailscale Funnel
+
+Tailscale Funnel can expose an ecosystem service to the **public internet**.
+It is **disabled by default** and must stay that way unless a specific service
+has been threat-modelled for public exposure.
+
+Before enabling Funnel for any service:
+
+1. Confirm the service is behind **Authelia** (every Traefik route is, except
+   the auth portal — which is itself hardened by `regulation` lockout rules).
+2. Prefer **2FA-required** access policies for any publicly-reachable route.
+3. Funnel only supports a fixed set of ports (443/8443/10000) and logs every
+   connection — review the Funnel access logs periodically.
+4. Never Funnel the Traefik dashboard, the Kasm/Guacamole admin UIs, or
+   Prometheus — these are management surfaces and stay LAN/tailnet-only.
+5. Receive-only RF data may still be subject to §89 TKG (§6) — do not expose
+   raw capture browsers publicly without anonymisation.
+
+The recommended off-LAN path remains the **Tailnet itself** (member-only
+access), not Funnel.

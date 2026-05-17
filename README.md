@@ -26,22 +26,23 @@ planner-dispatched GNU Radio flowgraphs, and ntfy alerts.
 
 ## Status
 
-**v0.1.0-alpha — reference hardware backends (prior: v0.0.4 ML pipeline).** The
-first user-facing pre-release. Stages 1–4 proved the math, the ML, and the
-multi-cloud compute on canned data; this stage wires real, imperfect hardware
-to the Stage-2 HAL contracts: a **USRP B210** SDR backend with multi-device
-coherent capture and mandatory pilot-tone calibration; an **AntRunner** rotator
-backend with closed-loop encoder validation; a **GRBL linear-rail** geometry
-backend with sub-mm position-error budgeting; **RTL-SDR** and **KrakenSDR**
-contrib backends as separate packages under `contrib/`; a `udev` rules
-generator; and an extended `rfdf hw` CLI (`selftest` / `geometry` / `rotator` /
-`rotator-server`). All hardware SDKs sit behind extras (`[sdr-uhd]`,
-`[rotator-antrunner]`, `[geometry-grbl]`) and are lazy-imported — the base
-install stays RF/ML/hardware-free, and the whole pipeline is still drivable
-end-to-end with zero physical hardware via the mock backends. The API is not
-yet stable but the platform is fully functional. See
-[STAGE-5-OUTPUTS.md](STAGE-5-OUTPUTS.md) and [ROADMAP.md](ROADMAP.md) for
-what's next.
+**v0.1.0-beta — software ecosystem hosting (prior: v0.1.0-alpha reference
+hardware backends).** Stage 6 is **pure infrastructure** — the platform core
+has not changed since `v0.1.0-alpha`. It adds the operator-facing "workshop":
+an Ansible-provisioned ecosystem of RF / SDR / EM-simulation tools, hosted
+*alongside* the platform on adjacent Proxmox infrastructure and reached through
+a browser — Kasm Workspaces, Apache Guacamole, OpenWebRX+, JupyterLab,
+code-server, a Homepage dashboard, Authelia SSO behind a Traefik v3 reverse
+proxy, and Prometheus/Grafana monitoring. None of it is a dependency of
+`pip install rfdf`: a user running `rfdf doa` needs none of these services.
+The platform itself remains feature-complete from `v0.1.0-alpha` — a **USRP
+B210** SDR backend, an **AntRunner** rotator, a **GRBL linear-rail** geometry
+backend, **RTL-SDR**/**KrakenSDR** contrib backends, a `udev` generator, and
+the `rfdf hw` CLI — all hardware SDKs behind lazy-imported extras, with the
+whole pipeline drivable end-to-end on mock backends. The API is not yet stable
+but the platform is fully functional. See
+[STAGE-6-OUTPUTS.md](STAGE-6-OUTPUTS.md), `docs/infrastructure/`, and
+[ROADMAP.md](ROADMAP.md) for what's next.
 
 ## Install (zero hardware path)
 
