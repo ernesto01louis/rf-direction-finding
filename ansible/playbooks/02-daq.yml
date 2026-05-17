@@ -1,0 +1,40 @@
+---
+# 02-daq — the UHD + B210 capture host (rfdf-daq).
+#
+# rfdf-daq is a privileged LXC with USB passthrough (set in 00-bootstrap). This
+# play installs UHD + the rfdf platform with the SDR/UHD extra so the host is
+# ready for coherent capture.
+- name: Configure the capture host
+  hosts: rfdf-daq
+  gather_facts: true
+  vars:
+    daq_venv: /opt/rfdf/venv
+  tasks:
+    - name: Install UHD + build prerequisites
+      ansible.builtin.apt:
+        name:
+          - uhd-host
+          - libuhd-dev
+          - python3-venv
+          - python3-pip
+          - python3-dev
+          - build-essential
+          - git
+        state: present
+        update_cache: true
+
+    - name: Download the UHD FPGA images
+      ansible.builtin.command:
+        cmd: uhd_images_downloader
+        creates: /usr/share/uhd/images/usrp_b210_fpga.bin
+
+    - name: Create the rfdf virtualenv
+      ansible.builtin.command:
+        cmd: "python3 -m venv {{ daq_venv }}"
+        creates: "{{ daq_venv }}/bin/python"
+
+    - name: Install rfdf with the SDR/UHD extra
+      ansible.builtin.pip:
+        name: "rfdf[sdr-uhd] @ git+{{ rfdf_repo_url }}@{{ rfdf_repo_version }}"
+        state: forcereinstall
+        virtualenv: "{{ daq_venv }}"

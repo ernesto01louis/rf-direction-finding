@@ -37,7 +37,7 @@ all:
             rfdf-mltrain: { ansible_host: 192.168.2.245, proxmox_vmid: 6245 }
             rfdf-dashboard: { ansible_host: 192.168.2.246, proxmox_vmid: 6246 }
             rfdf-jupyter: { ansible_host: 192.168.2.247, proxmox_vmid: 6247 }
-            rfdf-openwebrx: { ansible_host: 192.168.2.248, proxmox_vmid: 6248 }
+            rfdf-openwebrx: { ansible_host: 192.168.2.248, proxmox_vmid: 6248, usb_passthrough: true }
         vm:
           hosts:
             # Win11 — the proxmox_vm role creates the VM shell + attaches the

@@ -46,6 +46,6 @@ proxmox_guest_sizing:
   rfdf-mltrain: { cores: 2, memory: 2048, disk: 16 }
   rfdf-dashboard: { cores: 2, memory: 4096, disk: 30 }
   rfdf-jupyter: { cores: 4, memory: 8192, disk: 40 }
-  rfdf-openwebrx: { cores: 2, memory: 2048, disk: 20 }
+  rfdf-openwebrx: { cores: 2, memory: 2048, disk: 20, privileged: true }
   rfdf-daq: { cores: 4, memory: 4096, disk: 30, privileged: true }
   rfdf-winrf: { cores: 4, memory: 8192, disk: 64 }
