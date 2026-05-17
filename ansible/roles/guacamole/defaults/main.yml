@@ -1,0 +1,3 @@
+---
+# guacamole — HTML5 remote-desktop gateway.
+guacamole_image: "guacamole/guacamole:1.5.5"

@@ -1,0 +1,70 @@
+---
+# guacamole — deploy the Guacamole + guacd + PostgreSQL stack on rfdf-guac.
+#
+# Bespoke (not docker_stack) because the PostgreSQL schema must be generated
+# from the Guacamole image before the first container start.
+
+- name: Create the Guacamole stack directory
+  ansible.builtin.file:
+    path: "{{ docker_stacks_root }}/guacamole"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Copy the Guacamole Compose stack to the host
+  ansible.builtin.copy:
+    src: "{{ compose_src_root }}/guacamole/"
+    dest: "{{ docker_stacks_root }}/guacamole/"
+    owner: root
+    group: root
+    mode: "0640"
+    directory_mode: "0750"
+
+- name: Create the PostgreSQL state directories
+  ansible.builtin.file:
+    path: "{{ docker_stacks_root }}/guacamole/postgres/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  loop:
+    - data
+    - initdb
+
+- name: Check for the generated Guacamole schema
+  ansible.builtin.stat:
+    path: "{{ docker_stacks_root }}/guacamole/postgres/initdb/001-schema.sql"
+  register: _guac_schema
+
+- name: Generate the Guacamole PostgreSQL schema
+  when: not _guac_schema.stat.exists
+  ansible.builtin.shell:
+    cmd: >-
+      docker run --rm {{ guacamole_image }}
+      /opt/guacamole/bin/initdb.sh --postgresql
+      > {{ docker_stacks_root }}/guacamole/postgres/initdb/001-schema.sql
+  changed_when: true
+
+- name: Render the Guacamole .env
+  ansible.builtin.copy:
+    content: "GUACAMOLE_DB_PASSWORD={{ guacamole_db_password }}\n"
+    dest: "{{ docker_stacks_root }}/guacamole/.env"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Deploy the Guacamole Compose stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_stacks_root }}/guacamole"
+    state: present
+    pull: missing
+    remove_orphans: true
+
+- name: Wait for the Guacamole web app on :8080
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 8080
+    timeout: 120
+  delegate_to: localhost
