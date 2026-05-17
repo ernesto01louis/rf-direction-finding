@@ -11,6 +11,342 @@ recorded here per the release.
 
 ## [Unreleased]
 
+## [0.0.4] - 2026-05-17
+
+### Added — examples, ML documentation, and the training container
+
+- **PR12 — ML examples, docs, container scaffold, and the v0.0.4 release**:
+  - `examples/02-train-modulation-classifier/` — a runnable `demo.py` (not a
+    Jupyter notebook; CI-protected like `examples/01/`) that configures the
+    `local` compute backend, trains a small `resnet1d` classifier on synthetic
+    data, evaluates a held-out split, exports the model to ONNX, and runs
+    `Classifier` inference on a synthetic capture. CPU-only, fixed-seed,
+    under 60 s; ends with `demo: ML pipeline PASS`.
+  - `examples/04-rent-gpu-and-train/` — a runnable `demo.py` cloud-GPU-rental
+    walkthrough: discovers the `runpod` backend, builds a representative
+    `TrainingRecipe` / `ComputeJob`, prints RunPod's SDK-free `cost_estimate`,
+    shows the cost-confirmation gate, then runs the training on the `local`
+    backend as the compare-with-baseline step. Submits no real cloud job (no
+    credentials configured); ends with `demo: GPU-rental walkthrough PASS`.
+  - `docs/ml/` — six reference docs describing shipped reality:
+    `datasets.md`, `models.md`, `training.md`, `compute-backends.md`,
+    `registry.md`, `export.md`.
+  - `Dockerfile` (repo root) — the rfdf training image
+    (`FROM pytorch/pytorch:2.5-cuda12.1-cudnn8-runtime` + `pip install
+    .[ml,ml-onnx]`) that the cloud compute backends pull to run a job.
+  - `.github/workflows/container.yml` — a workflow that would build and push
+    `ghcr.io/ernesto01louis/rfdf-training` from the `Dockerfile`. Scaffolded
+    but **disabled** — the build-and-push job is guarded `if: false`, mirroring
+    the `publish-pypi` job in `release.yml`. No live GHCR push this stage; the
+    cloud backends use the `pip install rfdf[ml,ml-onnx]` fallback.
+  - `tests/demo_no_hardware/test_ml_pipeline_smoke.py` — the ML half of the
+    "every algorithm works on synthetic data" gate: trains a tiny `resnet1d`
+    via the real `rfdf.ml` API and asserts `best_val_accuracy` clears chance.
+    Guarded by `pytest.importorskip("torch")`.
+  - `tests/unit/test_examples.py` extended with subprocess smoke tests for the
+    02 and 04 demos (each `importorskip("torch")`); the torch-free 01 test is
+    unaffected.
+  - `ci.yml`: the `test-demo-no-hardware` job's install step now installs
+    `.[dev,ml,ml-onnx]` so the ML smoke test runs there — a step modification,
+    no gate added or removed.
+  - `rfdf ml train --gpu-count N` override — the six shipped recipes target a
+    GPU (`gpu_count = 1`); `--gpu-count 0` runs a recipe on a CPU-only host
+    with the `local` backend, so the `--compute local` sanity check is
+    runnable without a GPU.
+
+### Changed
+
+- `pyproject.toml` version `0.0.3` → `0.0.4`.
+- commitlint `footer-max-line-length` softened to a warning (matching
+  `body-max-line-length`) so squash-merge commit bodies — which concatenate
+  every sub-commit message — don't fail the `conventional-commits` gate.
+
+### Added — Stage 4 ML pipeline (PRs 1–11)
+
+- **PR11 — `rfdf ml` and `rfdf compute` CLI command groups**:
+  - `rfdf compute list` — Rich table of every discovered compute backend
+    (via `rfdf.backends.compute` entry-points) with name, GPU support, and
+    best-effort availability status.
+  - `rfdf compute test --backend <name>` — submit a trivial no-op job to the
+    named backend; `local` runs end-to-end; cloud backends report a clear
+    "needs credentials / SDK" message rather than crashing.
+  - `rfdf compute estimate --backend <name> [--gpu-model M] [--gpu-count N]
+    [--timeout-h H]` — build a representative `ComputeJob` and print the
+    backend's `cost_estimate` (low / estimated / high + rationale).
+  - `rfdf compute jobs` / `logs <job_id>` / `cancel <job_id>` — honest
+    per-session job management; fresh CLI invocations always start empty and
+    the commands direct operators to the provider console for persistence.
+  - `rfdf ml train --recipe <path> [--compute <backend>] [--epochs N] [--gpu-count N] [--yes]`
+    — load a TOML recipe, apply CLI overrides, print the cost estimate, and
+    **require explicit confirmation** before submitting (cost-confirmation
+    guardrail: never auto-submits cloud jobs without operator acknowledgement
+    unless `--yes` is passed or `compute.require_cost_confirmation = false`
+    in config).
+  - `rfdf ml registry list / show / export / import / delete` — full CRUD
+    for the local model registry backed by `rfdf.ml.registry`.
+  - `rfdf ml export <model_id> --format <onnx|hef|tflite|coreml> --output
+    <path>` — export a registered model; surfaces `ExportError` as a clean
+    CLI message.
+  - `ComputeSection` extended with `default_gpu_model`, `default_gpu_min_vram_gb`,
+    and `require_cost_confirmation` routing defaults (no credentials in config).
+  - Both CLI modules (`cli/ml.py`, `cli/compute.py`) are **torch-free at
+    module level** — `rfdf --help` remains instant and the `zero-domain-deps`
+    CI check continues to pass.
+
+- **PR10 — ML inference paths, model export pipeline, and local model registry**:
+  - `rfdf.ml.inference` — `Classifier` with three inference backends:
+    - **torch** (`Classifier.from_registry(..., backend="torch")`): loads a
+      `model.pt` checkpoint, restores the `RfdfClassifier` weights, and runs the
+      forward + `features()` pass to populate `ClassificationResult.feature_vector`.
+    - **onnx** (`backend="onnx"`): runs `model.onnx` via `onnxruntime.InferenceSession`
+      (requires `[ml-onnx]`); `feature_vector` is a zero-length array (feature
+      extraction requires the torch model).
+    - **hailo** (`backend="hailo"`): runs `model.hef` via `hailo_platform` (HailoRT SDK,
+      NOT on PyPI — lazy-imported; raises a clear `InferenceError` with installation
+      instructions when absent).
+  - `ClassificationResult` — frozen Pydantic model with `top_k_classes`,
+    `top_k_probabilities`, `feature_vector` (np.ndarray), and `inference_time_ms`.
+  - `rfdf.ml.export` — four export functions:
+    - `export_onnx` — `torch.onnx.export` with dynamic batch axes (opset 17 default);
+      always available with the `[ml]` extra.
+    - `export_hailo` — shells out to `hailomz` / `hailo` CLI if on PATH, else raises
+      `ExportError` with Hailo Dataflow Compiler installation instructions; validates
+      existing HEF files by magic-byte check (`HEF\0`).
+    - `export_tflite` — uses `litert-torch` (installed via `ai-edge-torch` in the
+      `[ml-tflite]` extra); lazy-imported; conversion verified working on Linux for
+      the four built-in architectures.
+    - `export_coreml` — uses `coremltools` (`[ml-coreml]` extra) via ONNX→CoreML;
+      conversion runs on Linux but `libcoremlpython` (run/validate) is macOS-only.
+  - `rfdf.ml.registry` — local filesystem model registry:
+    - Default root: `~/.local/share/rfdf/models/` (via `platformdirs`); overridable
+      via `RFDF_MODEL_REGISTRY` env var (used by tests).
+    - `ModelManifest` frozen Pydantic model with `model_id`, `architecture`, `task`,
+      `dataset`, `training`, `evaluation`, `provenance`, `exports`, `evaluation_history`,
+      and `registered_at`.
+    - **Append-only manifests**: re-registering or re-evaluating appends to
+      `evaluation_history`, never overwrites prior records.
+    - Functions: `register_model`, `get_manifest`, `load_model` (lazy torch),
+      `list_models`, `delete_model`, `export_model` (tar.gz bundle),
+      `import_model` (unpack bundle), `update_exports`.
+  - Lazy-import discipline: `rfdf.ml.registry` imports torch only inside
+    `load_model()`; `import rfdf.ml.registry` is torch-free (enforced by the
+    expanded `test_ml_lazy_import` suite).
+
+- **PR9 — SkyPilot multi-cloud compute backend** (`rfdf[compute-skypilot]`):
+  - `rfdf.backends.compute.skypilot` — `SkyPilotCompute` implementing the async
+    `ComputeBackend` Protocol against the `skypilot` Python SDK (v0.7+, imported
+    as `sky`).  Auth delegated to each cloud's native credential mechanism
+    (AWS `~/.aws/`, GCP service-account JSON, Lambda Cloud token, etc.) configured
+    via `sky check`; the backend does not manage credentials directly.
+  - **Multi-cloud cheapest-pick behaviour**: SkyPilot's `optimize_target=COST`
+    scans all `sky check`-enabled providers and picks the cheapest available
+    resource satisfying the `sky.Resources` spec.  Adding a new cloud credential
+    widens the pool without any code change.
+  - **Execution model**: each `submit` call launches a named SkyPilot cluster
+    (`rfdf-<uuid8>`), runs the entry script as a `sky.Task`, and auto-tears
+    down the cluster after the task completes (`down=True`).  The cluster name
+    is stored as `JobHandle.job_id`; the numeric SkyPilot job ID for
+    `sky.queue` / `sky.tail_logs` lookups is stored in
+    `handle.extra["sky_job_id"]`.
+  - **Lazy-SDK-import pattern** — the `sky` module is imported only inside
+    methods that call the SDK, never at module top level.  `create()` factory is
+    import-safe; `rfdf compute list` can enumerate the backend without the SDK
+    installed.  `cost_estimate` is fully SDK-free (pure arithmetic on the static
+    `_RATES` table — verified by the contract test suite).
+  - **`cost_estimate`** uses a static `_RATES` table of representative ceiling
+    prices across AWS, GCP, Lambda Cloud, and RunPod (the clouds SkyPilot
+    supports).  Formula: `estimated = rate × 1.5 × runtime_h × gpu_units`
+    (low 1.0×, high 2.0×).  SkyPilot's actual selected rate is often lower due
+    to multi-cloud spot-price optimisation.
+  - `SkyPilotBucketStorage` added to `rfdf.backends.compute._remote_storage` —
+    backed by a SkyPilot-managed cloud bucket (S3, GCS, or R2 depending on the
+    enabled cloud); lazy `sky` import.  Partial implementation: `put` records
+    keys in-process so `exists()` / `list()` work within a session; `get` raises
+    `NotImplementedError` (downloading from a cloud bucket outside a cluster
+    requires the cloud provider's native SDK — documented plainly in the
+    docstring).
+  - `skypilot` entry-point registered under `rfdf.backends.compute`.
+  - Unit tests (`tests/unit/test_compute_skypilot.py` +
+    `tests/unit/test_remote_storage.py` additions) with the SDK fully mocked —
+    no real network calls.  Covers properties, `cost_estimate` arithmetic (SDK-free
+    path, 1.5× factor, `low ≤ estimated ≤ high`), `submit` / `status` / `logs` /
+    `cancel` / `fetch_artifacts` against mocked responses, no-clouds
+    `RuntimeError`, missing-SDK `ImportError`, lazy-import guarantee (`sky` never
+    leaks into `sys.modules` on bare import), and `shlex`-based command-quoting
+    regression guard.
+  - `tests/integration/test_compute_skypilot_live.py` — real connectivity smoke
+    test (list enabled clouds + cost estimate + CPU-only launch-and-cancel),
+    skipped unless `SKYPILOT_TEST_LIVE=1` is set.
+
+- **PR8 — Vast.ai cloud compute backend** (`rfdf[compute-vastai]`):
+  - `rfdf.backends.compute.vastai` — `VastAiCompute` implementing the async
+    `ComputeBackend` Protocol against the `vastai` Python SDK (v0.2+).  Auth via
+    `VAST_API_KEY` environment variable, `~/.config/vastai/vast_api_key` (XDG), or
+    the legacy `~/.vast_api_key` — the SDK's standard key-resolution order; no
+    rfdf-specific config consulted.  Submits jobs by searching the Vast.ai
+    **marketplace** for the cheapest on-demand offer matching
+    `ComputeJob.gpu_model` / `gpu_count` / `gpu_min_vram_gb`, then calls
+    `create_instance` on the top result.  The entry script runs via the `onstart`
+    command (bash wrapper when pip requirements are present).  `cost_estimate` uses
+    a static `_RATES` table with the formula
+    `estimated = rate × 1.5 × runtime_h × gpu_units` (low 1.0×, high 2.0×); rates
+    are indicative marketplace floor prices — actual spot bids may be lower.
+  - **Marketplace reliability tradeoff documented** in the class docstring: Vast.ai
+    hosts are third-party machines and instances can be interrupted; high-reliability
+    workloads should prefer a managed cloud backend (RunPod reserved, Modal).
+  - **Lazy-SDK-import pattern** — the `vastai` module is imported only inside
+    methods that call the SDK, never at module top level.  `create()` factory is
+    import-safe; `rfdf compute list` can enumerate the backend without the SDK
+    installed.  `cost_estimate` is fully SDK-free (pure arithmetic on the static
+    `_RATES` table).
+  - `VastAiStorage` added to `rfdf.backends.compute._remote_storage` — backed by
+    Vast.ai per-instance disk (not a shared network volume); lazy `vastai` import.
+    Partial implementation: `put` records keys in-process so `exists()` / `list()`
+    work within a session; `get` raises `NotImplementedError` (downloading from
+    instance disk requires SSH access — documented plainly in the docstring).
+  - `vastai` entry-point registered under `rfdf.backends.compute`.
+  - Unit tests (`tests/unit/test_compute_vastai.py` +
+    `tests/unit/test_remote_storage.py` additions) with the SDK fully mocked —
+    no real network calls.  Covers properties, `cost_estimate` arithmetic (SDK-free
+    path, 1.5× factor, `low ≤ estimated ≤ high`), `submit` / `status` / `logs` /
+    `cancel` / `fetch_artifacts` against mocked responses, no-offers `RuntimeError`,
+    missing-credentials `RuntimeError`, missing-SDK `ImportError`, lazy-import
+    guarantee, and `shlex`-based `_build_onstart_cmd` quoting regression guard.
+  - `tests/integration/test_compute_vastai_live.py` — real connectivity smoke
+    test (search offers + cost estimate + create-and-immediately-destroy),
+    skipped unless `VAST_API_KEY` is set.
+
+- **PR7 — Modal cloud compute backend** (`rfdf[compute-modal]`):
+  - `rfdf.backends.compute.modal` — `ModalCompute` implementing the async
+    `ComputeBackend` Protocol against the `modal` Python SDK (v1.x).  Auth via
+    `~/.modal.toml` (populated by `modal token new`) or `MODAL_TOKEN_ID` /
+    `MODAL_TOKEN_SECRET` environment variables.  Submits jobs as Modal
+    `Sandbox` containers — no pre-deployed `App` function required; arbitrary
+    commands run directly.  GPU selection via `ComputeJob.gpu_model` and
+    `gpu_count` (translated to Modal's `"T4"` / `"A100:2"` string format).
+    `cost_estimate` uses a static `_RATES` table with the formula
+    `estimated = rate × 1.5 × runtime_h × gpu_units` (low 1.0×, high 2.0×);
+    Modal bills per-second so short jobs will be cheaper than the padded
+    estimate implies.
+  - **Lazy-SDK-import pattern** — the `modal` module is imported only inside
+    methods that call the SDK, never at module top level.  `create()` factory
+    is import-safe; `rfdf compute list` can enumerate the backend without the
+    SDK installed.  `cost_estimate` is fully SDK-free (pure arithmetic on the
+    static `_RATES` table).
+  - `ModalVolumeStorage` added to `rfdf.backends.compute._remote_storage` —
+    backed by a `modal.Volume`; lazy `modal` import.  Partial implementation:
+    `put` records keys in-process so `exists()` / `list()` work within a
+    session; `get` raises `NotImplementedError` (downloading from a Modal
+    Volume outside a container requires `Volume.read_file()` with active
+    credentials — documented plainly in the docstring).
+  - `modal` entry-point registered under `rfdf.backends.compute`.
+  - Unit tests (`tests/unit/test_compute_modal.py` +
+    `tests/unit/test_remote_storage.py` additions) with the SDK fully mocked
+    — no real network calls.  Covers properties, `cost_estimate` arithmetic
+    (1.5× factor, `low ≤ estimated ≤ high`), `submit` / `status` / `logs` /
+    `cancel` / `fetch_artifacts` against mocked responses, missing-credentials
+    `RuntimeError`, missing-SDK `ImportError`, lazy-import guarantee, and
+    `shlex`-based command-quoting regression guard.
+  - `tests/integration/test_compute_modal_live.py` — real connectivity smoke
+    test, skipped unless `MODAL_TOKEN_ID` + `MODAL_TOKEN_SECRET` are set.
+
+- **PR6 — RunPod cloud compute backend** (`rfdf[compute-runpod]`):
+  - `rfdf.backends.compute.runpod` — `RunPodCompute` implementing the async
+    `ComputeBackend` Protocol against the `runpod` Python SDK.  Auth via
+    `RUNPOD_API_KEY` environment variable.  Submits jobs as RunPod pods with
+    GPU selection from `ComputeJob.gpu_model` / `gpu_min_vram_gb`.
+    `cost_estimate` uses a static `_RATES` table with the formula
+    `estimated = rate × 1.5 × runtime_h × gpu_units` (low 1.0×, high 2.0×).
+  - **Lazy-SDK-import pattern** — the `runpod` module is imported only inside
+    methods that call the SDK, never at module top level.  `create()` factory
+    is import-safe; `rfdf compute list` can enumerate the backend without the
+    SDK installed.
+  - `rfdf.backends.compute._remote_storage` — `RemoteStorage`
+    `@runtime_checkable` Protocol plus two implementations:
+    `LocalFilesystemStorage` (pure stdlib, good default and test double) and
+    `RunpodVolumeStorage` (RunPod Network Volume; lazy `runpod` import — a
+    partial implementation: `put` records keys in-process and `get` raises
+    `NotImplementedError`, since real volume transfer needs a live pod's SSH
+    endpoint).
+  - `runpod` entry-point registered under `rfdf.backends.compute`.
+  - 49 unit tests (`test_compute_runpod.py` + `test_remote_storage.py`) with
+    the SDK fully mocked — no real network calls.
+  - `tests/integration/test_compute_runpod_live.py` — real connectivity smoke
+    test, skipped unless `RUNPOD_API_KEY` is set.
+
+- `ml-coreml` (`coremltools`) and `ml-tflite` (`ai-edge-torch`) optional-dependency
+  extras, completing the Stage 4 ML export surface.
+- `coverage-ml` CI job — a dedicated 75% coverage floor for `src/rfdf/ml/` and the
+  cloud compute backends, which the base `coverage` job omits because they require
+  the `[ml]` / `[compute-*]` extras.
+- `rfdf.ml.errors` — `MlError` exception taxonomy with subclasses `DatasetError`,
+  `AugmentationError`, `ModelError`, `TrainingError`, `InferenceError`, `ExportError`,
+  and `RegistryError`.  Pure stdlib, importable without any ML extras.
+- `rfdf.ml.datasets.augmentation` — pure-NumPy IQ augmentation framework with
+  `AugmentationConfig` (AWGN, frequency shift, gain variation, IQ imbalance, multipath,
+  impulsive noise, sample-rate jitter) and `apply_augmentations`.  Torch-free.
+- `rfdf.ml.datasets._torchsig_compat` — TorchSig 2.x compatibility shim (verified
+  against TorchSig 2.1.1).  The sole file that imports torchsig; isolates all 2.x
+  API surface so future torchsig drift only touches this one module.
+- `rfdf.ml.datasets.synthetic` — `make_modulation_dataset` and
+  `make_protocol_dataset` backed by TorchSig's iterable dataset, returning
+  `torch.utils.data.Dataset` instances with per-item deterministic augmentation.
+- `rfdf.ml.datasets.radioml` — RadioML 2018.01A HDF5 loader with SNR/class filters,
+  download-on-first-use (separately mockable `_download_radioml`), and CC-BY-NC-SA
+  license notice.  Lazy `torch` + `h5py` imports.
+- `rfdf.ml.datasets.captured` — SigMF capture loader with directory-glob discovery,
+  annotation-based label extraction, fixed-length windowing, and **by-session**
+  train/val/test split to prevent data leakage.  Lazy `torch` import.
+- `coverage-ml` CI gate activated (removed `if: false`); enforces ≥75% ML coverage.
+- `rfdf.ml.models` — four neural-network architectures for RF signal classification,
+  all subclassing `RfdfClassifier` (which provides `predict_proba`, `features`, and
+  `to_onnx`):
+  - `ResNet1D` — 1-D residual CNN over raw IQ as two real channels `(2, num_samples)`;
+    configurable depth (`"resnet18"` / `"resnet34"`).  Modulation-classification baseline.
+  - `ResNet2D` — 2-D residual CNN (ResNet-18 layout) over a spectrogram /
+    time-frequency image `(channels, freq_bins, time_bins)`.
+  - `SignalTransformer` — lightweight Transformer encoder over non-overlapping spatial
+    patches of a 2-D time-frequency input; uses a `[CLS]` token following ViT conventions.
+  - `EfficientNetClassifier` — `torchvision.models.efficientnet_b0` adapted for
+    multi-channel RF spectrograms (stem replaced for arbitrary channel count, head
+    replaced for `num_classes`; pretrained weights never loaded).
+- `rfdf.ml.models.build_model` — lazy factory: maps an architecture name to the right
+  module via `importlib.import_module` so that `import rfdf.ml.models` never loads
+  `torch`.  Raises `ModelError` for unknown names.
+- `rfdf.ml.recipes` — torch-free recipe system: `DatasetSpec`, `ModelSpec`,
+  `TrainingSpec`, `ComputeSpec`, and `TrainingRecipe` (all frozen Pydantic models).
+  `load_recipe(path)` parses a TOML file.  `TrainingRecipe.to_compute_job(working_dir)`
+  compiles the recipe into a HAL `ComputeJob`: converts `timeout_h` → `timeout_s`,
+  writes a 3-line `train.py` runpy shim, injects a JSON-serialised recipe via
+  `$RFDF_RECIPE`, and honours the XOR `container_image` / `pip_requirements` constraint.
+- `rfdf.ml._manifest` — torch-free provenance record: `TrainingManifest` (frozen
+  Pydantic), `write_manifest(manifest, path)`, and `current_git_sha()` best-effort
+  helper (returns `"unknown"` when git is unavailable).
+- `rfdf.ml.datasets.build_datasets(spec)` — dispatches on `DatasetSpec.kind` to return
+  `(train, val, test)` datasets with disjoint seed offsets for synthetic kinds.
+  All torch imports are lazy inside the function body so `rfdf.ml.datasets` stays
+  torch-free at module level.
+- `rfdf.ml.training` — backend-agnostic training loop: `train(recipe, train_dataset,
+  val_dataset, output_dir, ...)` returning `TrainingResult`.  Features: deterministic
+  seeding (random/numpy/torch/CUDA/DataLoader workers), AdamW + linear-warmup cosine
+  schedule, AMP (`autocast` + `GradScaler`), gradient accumulation, top-K checkpoint
+  retention, DDP support (`DistributedDataParallel` + `DistributedSampler`), IQ→model-
+  input adapter (2-tuple `input_shape` → `(2, N)` raw IQ; 3-tuple → `(2, F, T)` STFT
+  spectrogram), optional WandB / MLflow (lazy-imported), and `manifest.json` written on
+  completion via `rfdf.ml._manifest`.
+- `rfdf.ml.train_entrypoint` — thin `<300`-line entry point invoked as
+  `python -m rfdf.ml.train_entrypoint <recipe.toml>` or via `$RFDF_RECIPE` env var.
+  Logic lives in `rfdf.ml.training`; the entrypoint only resolves the recipe, calls
+  `build_datasets` + `train`, and prints a `"<name>: trained best_val_acc=… PASS"` line.
+- `recipes/` — 6 operator-ready TOML recipe templates:
+  `sig53-resnet1d-baseline`, `sig53-resnet2d-baseline`, `radioml-resnet2d`,
+  `wideband-detection-detr` (uses `transformer` architecture — DETR not yet in the
+  platform; noted as a deviation), `protocol-id-resnet2d`, `fingerprint-finetune`.
+- `LocalCompute` container execution — a `ComputeJob` with a `container_image` now
+  runs via `docker run` (working dir bind-mounted at `/workspace`, `job.env`
+  forwarded with `-e`, `--gpus all` when a GPU is requested), replacing the Stage 2
+  `NotImplementedError`.
+
 ## [0.0.3] - 2026-05-15
 
 ### Added — classical DOA pipeline
@@ -192,6 +528,8 @@ recorded here per the release.
 - **Actual PyPI publish** — workflow scaffolded; first publish at `v0.1.0` (post-Stage
   7) per the Stage 1 handoff guidance.
 
-[Unreleased]: https://github.com/ernesto01louis/rf-direction-finding/compare/v0.0.2...HEAD
+[Unreleased]: https://github.com/ernesto01louis/rf-direction-finding/compare/v0.0.4...HEAD
+[0.0.4]: https://github.com/ernesto01louis/rf-direction-finding/compare/v0.0.3...v0.0.4
+[0.0.3]: https://github.com/ernesto01louis/rf-direction-finding/releases/tag/v0.0.3
 [0.0.2]: https://github.com/ernesto01louis/rf-direction-finding/releases/tag/v0.0.2
 [0.0.1]: https://github.com/ernesto01louis/rf-direction-finding/releases/tag/v0.0.1

@@ -1,0 +1,24 @@
+# Coverage configuration for the `coverage-ml` CI job.
+#
+# The base `coverage` job measures `src/rfdf` at an 80% floor but omits
+# `src/rfdf/ml/` and the cloud compute backends — they only import once the
+# [ml] / [compute-*] extras are installed, which that job does not do.
+#
+# This file is their dedicated measurement. The `coverage-ml` job installs the
+# ML extras and runs:
+#
+#     pytest --cov --cov-config=.coveragerc-ml
+#
+[run]
+source =
+    src/rfdf/ml
+    src/rfdf/backends/compute
+branch = true
+
+[report]
+fail_under = 75
+show_missing = true
+exclude_also =
+    if TYPE_CHECKING:
+    raise NotImplementedError
+    if __name__ == .__main__.:

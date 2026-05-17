@@ -5,10 +5,10 @@ with a git tag and a CHANGELOG entry.
 
 | Stage | Status | Target tag | Summary |
 |---|---|---|---|
-| 1 | IN PROGRESS | `v0.0.1` | Repository scaffold and conventions (this PR) |
-| 2 | PLANNED | `v0.0.2` | HAL Protocol classes + mock + SigMF file-replay backends |
-| 3 | PLANNED | `v0.0.3` | Classical DOA (MUSIC, ESPRIT, Bartlett, MVDR) + calibration + CRLB tests |
-| 4 | PLANNED | `v0.0.4` | TorchSig ML pipeline + multi-cloud compute backends + model registry |
+| 1 | DONE | `v0.0.1` | Repository scaffold and conventions (this PR) |
+| 2 | DONE | `v0.0.2` | HAL Protocol classes + mock + SigMF file-replay backends |
+| 3 | DONE | `v0.0.3` | Classical DOA (MUSIC, ESPRIT, Bartlett, MVDR) + calibration + CRLB tests |
+| 4 | DONE | `v0.0.4` | TorchSig ML pipeline + multi-cloud compute backends + model registry |
 | 5 | PLANNED | `v0.1.0-alpha` | Reference hardware backends (B210, AntRunner, GRBL rails) |
 | 6 | PLANNED | `v0.1.0-beta` | Ansible-provisioned tool ecosystem (Kasm, Guacamole, Authelia, Homepage) |
 | 7 | PLANNED | `v0.1.0` | Optional orchestrator integration + PyPI publish |

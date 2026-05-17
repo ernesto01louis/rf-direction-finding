@@ -52,3 +52,11 @@ rules:
     - 1  # warning
     - "always"
     - 100
+
+  footer-max-line-length:
+    # Warning, not error — a GitHub squash-merge commit body concatenates every
+    # sub-commit message, so an integration PR re-lints long lines that land in
+    # the parsed footer. Consistent with body-max-line-length above.
+    - 1  # warning
+    - "always"
+    - 100

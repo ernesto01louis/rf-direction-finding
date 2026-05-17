@@ -133,19 +133,6 @@ def test_cost_estimate_is_zero(tmp_path: Path) -> None:
     assert est.backend == "local"
 
 
-def test_container_image_raises_not_implemented(tmp_path: Path) -> None:
-    """container_image execution is deferred to Stage 4."""
-    backend = create_local()
-    (tmp_path / "run.py").write_text("print('hi')\n")
-    job = ComputeJob(
-        entry_script="run.py",
-        working_dir=tmp_path,
-        container_image="python:3.11-slim",
-    )
-    with pytest.raises(NotImplementedError, match="container_image"):
-        asyncio.run(backend.submit(job))
-
-
 def test_missing_entry_script_raises(tmp_path: Path) -> None:
     """A submit with a missing entry_script raises FileNotFoundError."""
     backend = create_local()

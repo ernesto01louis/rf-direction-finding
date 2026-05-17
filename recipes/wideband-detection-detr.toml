@@ -1,0 +1,49 @@
+name = "wideband-detection-detr"
+
+# Deviation: the platform does not ship a DETR object-detection model.
+# This recipe uses architecture="transformer" (SignalTransformer) as the
+# closest available time-frequency model.  When a dedicated wideband
+# detection head (DETR-style) is added to the platform, update architecture
+# and input_shape accordingly.
+[dataset]
+kind = "modulation"
+num_signals = 53
+num_samples_per_signal = 2048
+num_iq_samples = 2048
+impairments = "ota"
+seed = 42
+
+[model]
+architecture = "transformer"
+num_classes = 53
+input_shape = [2, 128, 128]
+
+[model.extra_kwargs]
+num_heads = 8
+num_layers = 6
+embed_dim = 256
+patch_size = 8
+
+[training]
+epochs = 80
+batch_size = 64
+learning_rate = 5e-4
+optimizer = "adamw"
+scheduler = "cosine"
+warmup_steps = 1000
+grad_accum_steps = 4
+amp = true
+ddp = false
+checkpoint_every_steps = 500
+keep_top_k = 3
+seed = 42
+wandb = false
+mlflow = false
+
+[compute]
+backend = "local"
+gpu_count = 1
+gpu_min_vram_gb = 24.0
+timeout_h = 16.0
+priority = "normal"
+pip_requirements = ["rfdf[ml,ml-onnx]"]
