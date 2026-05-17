@@ -1,0 +1,69 @@
+{
+  "uid": "rfdf-host-health",
+  "title": "rfdf — host health",
+  "tags": ["rfdf", "infrastructure"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Hosts up",
+      "datasource": { "type": "prometheus", "uid": "rfdf-prometheus" },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(up{job=\"node\"})" }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "CPU busy % per host",
+      "datasource": { "type": "prometheus", "uid": "rfdf-prometheus" },
+      "gridPos": { "h": 9, "w": 18, "x": 6, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{instance}}",
+          "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Memory used % per host",
+      "datasource": { "type": "prometheus", "uid": "rfdf-prometheus" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 9 },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{instance}}",
+          "expr": "(1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Root filesystem used % per host",
+      "datasource": { "type": "prometheus", "uid": "rfdf-prometheus" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 9 },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{instance}}",
+          "expr": "(1 - node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"}) * 100"
+        }
+      ]
+    }
+  ]
+}

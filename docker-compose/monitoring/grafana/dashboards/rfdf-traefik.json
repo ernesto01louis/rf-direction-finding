@@ -1,0 +1,43 @@
+{
+  "uid": "rfdf-traefik",
+  "title": "rfdf — Traefik ingress",
+  "tags": ["rfdf", "traefik"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Requests/s by service",
+      "datasource": { "type": "prometheus", "uid": "rfdf-prometheus" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{service}}",
+          "expr": "sum by (service) (rate(traefik_service_requests_total[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "5xx responses/s by service",
+      "datasource": { "type": "prometheus", "uid": "rfdf-prometheus" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 9 },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{service}}",
+          "expr": "sum by (service) (rate(traefik_service_requests_total{code=~\"5..\"}[5m]))"
+        }
+      ]
+    }
+  ]
+}

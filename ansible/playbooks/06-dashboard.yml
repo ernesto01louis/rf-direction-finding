@@ -1,12 +1,9 @@
 ---
 # 06-dashboard — the dashboard/ingress host (rfdf-dashboard).
 #
-# Sub-session 6.1 ships the load-bearing foundation: Docker, Authelia (SSO),
-# Traefik (ingress). Sub-session 6.4 appends the Homepage + monitoring plays
-# to this same file.
-#
 # Order matters: docker creates the rfdf-edge network; Authelia comes up before
-# Traefik so the ForwardAuth middleware has a backend on first request.
+# Traefik so the ForwardAuth middleware has a backend on first request;
+# Homepage + monitoring join the same edge network afterwards.
 
 - name: Edge proxy + single sign-on
   hosts: traefik_hosts
@@ -15,3 +12,19 @@
     - docker
     - authelia
     - traefik
+
+- name: Install node_exporter on every LXC
+  hosts: lxc
+  gather_facts: true
+  tasks:
+    - name: Install + start the Prometheus node exporter
+      ansible.builtin.include_role:
+        name: monitoring
+        tasks_from: node_exporter
+
+- name: Homepage dashboard + monitoring stack
+  hosts: monitoring_hosts
+  gather_facts: true
+  roles:
+    - homepage
+    - monitoring

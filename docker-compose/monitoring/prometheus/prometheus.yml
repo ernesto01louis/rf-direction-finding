@@ -1,0 +1,42 @@
+# Prometheus scrape config for the rfdf ecosystem.
+# Targets use the reference .239-.248 IP plan — edit for your network.
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # node_exporter on every LXC (installed by the monitoring play).
+  - job_name: node
+    static_configs:
+      - targets:
+          - "192.168.2.239:9100"   # rfdf-platform
+          - "192.168.2.240:9100"   # rfdf-daq
+          - "192.168.2.241:9100"   # rfdf-tools
+          - "192.168.2.242:9100"   # rfdf-kasm
+          - "192.168.2.243:9100"   # rfdf-guac
+          - "192.168.2.245:9100"   # rfdf-mltrain
+          - "192.168.2.246:9100"   # rfdf-dashboard
+          - "192.168.2.247:9100"   # rfdf-jupyter
+          - "192.168.2.248:9100"   # rfdf-openwebrx
+
+  - job_name: traefik
+    static_configs:
+      - targets: ["traefik:8082"]
+
+  # rfdf platform /metrics — a Stage-7 deliverable; the target stays down
+  # (and visibly so) until the REST API ships.
+  - job_name: rfdf-platform
+    static_configs:
+      - targets: ["192.168.2.239:8000"]

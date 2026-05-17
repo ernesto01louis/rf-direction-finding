@@ -1,0 +1,53 @@
+# Monitoring — Prometheus + Grafana + Alertmanager for the rfdf ecosystem.
+# Standalone: `cp .env.example .env`, then `docker compose up -d`.
+# Ansible deploys it via the `monitoring` role on rfdf-dashboard.
+name: monitoring
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.1.0          # pinned; bump via Renovate
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=30d"
+    volumes:
+      - ./prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    networks:
+      - rfdf-edge
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.0
+    container_name: alertmanager
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+    volumes:
+      - ./alertmanager:/etc/alertmanager:ro
+    networks:
+      - rfdf-edge
+
+  grafana:
+    image: grafana/grafana:11.4.0           # pinned — avoids the 13.x regression
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD}"
+      GF_SERVER_ROOT_URL: "https://grafana.rf.lan"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    networks:
+      - rfdf-edge
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  rfdf-edge:
+    external: true
+    name: rfdf-edge
