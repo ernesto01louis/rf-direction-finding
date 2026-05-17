@@ -1,0 +1,51 @@
+# Authelia — OIDC provider + ForwardAuth SSO for the rfdf ecosystem.
+# Standalone: `cp .env.example .env`, populate secrets, `docker compose up -d`.
+# Ansible deploys this stack via the `authelia` role on rfdf-dashboard.
+name: authelia
+
+services:
+  authelia:
+    image: authelia/authelia:4.39.5     # pinned; bump via Renovate, never :latest
+    container_name: authelia
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file: .env                       # secrets — rendered by the authelia role
+    volumes:
+      - ./configuration.yml:/config/configuration.yml:ro
+      - ./users_database.yml:/config/users_database.yml:ro
+      - ./secrets:/secrets:ro             # OIDC private key (gitignored)
+      - ./data:/data                      # sqlite store + notifications (gitignored)
+    networks:
+      - rfdf-edge
+    healthcheck:
+      test: ["CMD", "authelia", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  redis:
+    image: redis:7.4-alpine               # session store
+    container_name: authelia-redis
+    restart: unless-stopped
+    command:
+      - "redis-server"
+      - "--requirepass"
+      - "${AUTHELIA_SESSION_REDIS_PASSWORD}"
+      - "--appendonly"
+      - "yes"
+    volumes:
+      - ./redis-data:/data                 # gitignored
+    networks:
+      - rfdf-edge
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${AUTHELIA_SESSION_REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+networks:
+  rfdf-edge:
+    external: true
+    name: rfdf-edge

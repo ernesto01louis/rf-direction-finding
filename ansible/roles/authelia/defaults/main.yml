@@ -1,0 +1,8 @@
+---
+# authelia — defaults. Secrets come from vault/secrets.yml; SSO config lives
+# in docker-compose/authelia/configuration.yml.
+authelia_stack_name: authelia
+# Empty by default -> filesystem notifier. Set authelia_smtp_host in the vault
+# to switch Authelia to SMTP mail delivery.
+authelia_smtp_host: ""
+authelia_smtp_port: 587

@@ -1,0 +1,80 @@
+---
+# authelia — deploy the SSO provider on rfdf-dashboard.
+#
+# Bespoke (not docker_stack) because Authelia needs two extra rendered files
+# alongside the stack: the user database and the OIDC signing key.
+
+- name: Create the Authelia stack directory
+  ansible.builtin.file:
+    path: "{{ docker_stacks_root }}/authelia"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Copy the Authelia Compose stack to the host
+  ansible.builtin.copy:
+    src: "{{ compose_src_root }}/authelia/"
+    dest: "{{ docker_stacks_root }}/authelia/"
+    owner: root
+    group: root
+    mode: "0640"
+    directory_mode: "0750"
+
+- name: Create the Authelia secrets + data directories
+  ansible.builtin.file:
+    path: "{{ docker_stacks_root }}/authelia/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  loop:
+    - secrets
+    - data
+    - redis-data
+
+- name: Render the OIDC signing key
+  ansible.builtin.copy:
+    content: "{{ authelia_oidc_private_key }}"
+    dest: "{{ docker_stacks_root }}/authelia/secrets/oidc.private.pem"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Render the Authelia user database
+  ansible.builtin.template:
+    src: users_database.yml.j2
+    dest: "{{ docker_stacks_root }}/authelia/users_database.yml"
+    owner: root
+    group: root
+    mode: "0640"
+  no_log: true
+
+- name: Render the Authelia secrets .env
+  ansible.builtin.template:
+    src: authelia.env.j2
+    dest: "{{ docker_stacks_root }}/authelia/.env"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Deploy the Authelia Compose stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_stacks_root }}/authelia"
+    state: present
+    pull: missing
+    remove_orphans: true
+
+# Authelia is not published to the host — Traefik reaches it over rfdf-edge.
+# Verify via the container's own healthcheck instead of a host port.
+- name: Wait for the Authelia container to report healthy
+  community.docker.docker_container_info:
+    name: authelia
+  register: _authelia_info
+  until: >-
+    _authelia_info.container is defined
+    and _authelia_info.container.State.Health.Status | default('') == 'healthy'
+  retries: 24
+  delay: 5

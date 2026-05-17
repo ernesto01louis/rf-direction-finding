@@ -1,0 +1,55 @@
+# Traefik v3 static configuration.
+# File-provider only — every router/service/middleware is declared in
+# dynamic.yml and stays inspectable in Git. No Docker label discovery.
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+log:
+  level: INFO
+
+accessLog: {}
+
+# Built-in /ping endpoint used by the container healthcheck.
+ping:
+  entryPoint: web
+
+api:
+  dashboard: true               # served at traefik.rf.lan, gated by Authelia
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+  metrics:
+    address: ":8082"
+
+# Prometheus metrics — scraped by the monitoring stack (Stage 6 §12).
+metrics:
+  prometheus:
+    entryPoint: metrics
+    addEntryPointsLabels: true
+    addServicesLabels: true
+
+providers:
+  file:
+    filename: /etc/traefik/dynamic.yml
+    watch: true
+
+# TLS: ships with Traefik's self-signed default certificate so every route is
+# HTTPS out of the box on a .lan domain. For public hostnames (Tailscale
+# Funnel) enable the ACME resolver below; for internal PKI point it at step-ca.
+# See docs/infrastructure/tailscale.md.
+#
+# certificatesResolvers:
+#   letsencrypt:
+#     acme:
+#       email: operator@rf.lan
+#       storage: /certs/acme.json
+#       tlsChallenge: {}
