@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rfdf-backend-rtlsdr"
+version = "0.1.0"
+description = "RTL-SDR SdrSource backend for rfdf — a contrib reference example"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+authors = [{ name = "rfdf contributors" }]
+keywords = ["sdr", "rtl-sdr", "rfdf", "direction-finding"]
+dependencies = [
+    "rfdf>=0.0.4",
+    "numpy>=1.26",
+    "pyrtlsdr>=0.3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.7", "mypy>=1.13"]
+
+# This is the whole point of a contrib backend: an entry point under the
+# rfdf.backends.sdr group. Once this package is pip-installed, `rfdf hw
+# list-backends` discovers `rtlsdr` automatically — no change to core rfdf.
+[project.entry-points."rfdf.backends.sdr"]
+rtlsdr = "rfdf_backend_rtlsdr.source:create"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rfdf_backend_rtlsdr"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
