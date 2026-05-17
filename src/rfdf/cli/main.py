@@ -10,9 +10,11 @@ from __future__ import annotations
 import typer
 
 from rfdf import __version__
+from rfdf.cli.compute import compute_app
 from rfdf.cli.config_cmd import config_app
 from rfdf.cli.doa import doa_app
 from rfdf.cli.hw import hw_app
+from rfdf.cli.ml import ml_app
 
 app = typer.Typer(
     name="rfdf",
@@ -23,6 +25,8 @@ app = typer.Typer(
 app.add_typer(hw_app, name="hw")
 app.add_typer(config_app, name="config")
 app.add_typer(doa_app, name="doa")
+app.add_typer(ml_app, name="ml")
+app.add_typer(compute_app, name="compute")
 
 
 def _version_callback(value: bool) -> None:
