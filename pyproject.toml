@@ -37,6 +37,8 @@ sdr-soapy = ["SoapySDR>=0.8"]
 # --- Rotator backends ---
 rotator-hamlib = ["hamlib-py>=4.5"]
 rotator-antrunner = ["httpx>=0.27"]
+# --- Geometry backends ---
+geometry-grbl = ["httpx>=0.27"]
 # --- ML ---
 ml = ["torch>=2.5", "torchvision>=0.20", "torchsig>=2.0", "scikit-learn>=1.5", "h5py>=3.11"]
 ml-onnx = ["onnx>=1.17", "onnxruntime>=1.20"]
@@ -70,7 +72,7 @@ docs = ["mkdocs-material>=9.5", "mkdocstrings[python]>=0.27"]
 # --- Test-only cross-validation (DOA estimators checked vs an independent library) ---
 crosscheck = ["pyargus>=1.0", "matplotlib>=3.5"]
 # --- Convenience meta-extras ---
-all-hardware = ["rfdf[sdr-uhd,sdr-pluto,sdr-soapy,rotator-hamlib,rotator-antrunner]"]
+all-hardware = ["rfdf[sdr-uhd,sdr-pluto,sdr-soapy,rotator-hamlib,rotator-antrunner,geometry-grbl]"]
 all-compute = ["rfdf[compute-runpod,compute-modal,compute-vastai,compute-skypilot]"]
 all = ["rfdf[ml,ml-onnx,ml-coreml,ml-tflite,api,antenna,all-hardware,all-compute,orchestrator]"]
 
@@ -92,6 +94,7 @@ antrunner = "rfdf.backends.rotator.antrunner:create"
 [project.entry-points."rfdf.backends.geometry"]
 static = "rfdf.backends.geometry.static:create"
 mock-morph = "rfdf.backends.geometry.mock_morph:create"
+grbl-linear = "rfdf.backends.geometry.grbl_linear:create"
 
 [project.entry-points."rfdf.backends.compute"]
 local = "rfdf.backends.compute.local:create"
@@ -231,6 +234,7 @@ omit = [
     "src/rfdf/backends/sdr/b210.py",
     "src/rfdf/backends/_grbl.py",
     "src/rfdf/backends/rotator/antrunner.py",
+    "src/rfdf/backends/geometry/grbl_linear.py",
 ]
 
 [tool.coverage.report]
