@@ -26,6 +26,7 @@ class SdrSource(Protocol):
     async def stop(self) -> None: ...
     def stream(self) -> AsyncIterator[StreamBlock]: ...
     async def capture(self, duration_s: float) -> Recording: ...
+    async def status(self) -> dict[str, object]: ...
     async def calibration_pilot(self, freq_hz: float, power_dbm: float) -> None: ...
     async def close(self) -> None: ...
 ```
@@ -34,6 +35,13 @@ Lifetime: `configure → start → stream/capture → stop → close`. The
 `calibration_pilot` call is gated by the EIRP cap (see
 [configuration.md](configuration.md)); replay-only backends raise
 `NotImplementedError`.
+
+`status()` (added in `v0.1.0-alpha`, Stage 5) returns a free-form
+device-health mapping — hardware backends report reference-clock / GPSDO lock,
+USB topology, board temperatures; synthetic backends report whatever is
+meaningful. Every key is optional except `"backend"`; callers (notably
+`rfdf hw selftest`) probe with `.get(...)`. It is safe to call at any point in
+the lifecycle, including before `configure()`.
 
 | Backend | Channels | Pilot tone | Notes |
 |---|---|---|---|

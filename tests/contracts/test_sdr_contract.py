@@ -138,5 +138,23 @@ def test_isinstance_protocol(
         assert isinstance(sdr, SdrSource), name
 
 
+def test_status_returns_dict(
+    sdr_factories: list[tuple[str, Callable[..., Any]]],
+    sdr_factory_kwargs: Callable[[str], dict[str, Any]],
+) -> None:
+    """status() returns a dict with a 'backend' key, callable before configure()."""
+    for name, factory in sdr_factories:
+        sdr = _make_sdr(name, factory, sdr_factory_kwargs)
+
+        async def run(s: SdrSource = sdr, n: str = name) -> None:
+            # Probed before configure() — status() is a health probe, not a
+            # data path, and must not raise.
+            report = await s.status()
+            assert isinstance(report, dict), n
+            assert isinstance(report.get("backend"), str), n
+
+        asyncio.run(run())
+
+
 def _unused_pytest_helper(_p: pytest.MonkeyPatch) -> None:  # pragma: no cover
     pass

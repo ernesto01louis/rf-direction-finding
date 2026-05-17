@@ -175,6 +175,23 @@ class SdrSource(Protocol):
         """
         ...
 
+    async def status(self) -> dict[str, object]:
+        """Return a backend-specific device-health snapshot.
+
+        The contract is intentionally a free-form mapping: a hardware backend
+        fills it with whatever it can report (reference-clock lock, GPSDO lock,
+        USB-topology validity, board temperatures, …), a synthetic backend
+        reports whatever is meaningful for it. Callers — notably
+        ``rfdf hw selftest`` — MUST treat every key as optional and probe with
+        ``.get(...)``; the only guaranteed key is ``"backend"`` (a stable
+        identifier string).
+
+        This method must be safe to call at any point in the lifecycle,
+        including before ``configure()`` — it is a health probe, not a data
+        path, and never raises for a reachable backend.
+        """
+        ...
+
     async def calibration_pilot(self, freq_hz: float, power_dbm: float) -> None:
         """Emit a known pilot tone (when the backend supports TX).
 

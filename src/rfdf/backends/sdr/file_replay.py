@@ -241,6 +241,21 @@ class FileReplaySdr:
             metadata=meta_out,
         )
 
+    async def status(self) -> dict[str, object]:
+        """Report replay health — the recording is the 'device'."""
+        return {
+            "backend": "file-replay",
+            "reachable": True,
+            "streaming": self._running,
+            "num_channels": self.num_channels,
+            "configured": self._config is not None,
+            "meta_path": str(self._meta_path),
+            "datatype": self._datatype,
+            "total_samples": int(self._iq.size),
+            "cursor": self._cursor,
+            "eof": self._cursor >= self._iq.size,
+        }
+
     async def calibration_pilot(self, freq_hz: float, power_dbm: float) -> None:
         """Replay backends cannot transmit — TX is intrinsically unavailable."""
         raise NotImplementedError("file-replay: cannot emit a pilot tone — RX only")
