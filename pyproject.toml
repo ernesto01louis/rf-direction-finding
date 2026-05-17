@@ -159,10 +159,11 @@ ignore_errors = true
 module = ["skrf.*"]
 ignore_missing_imports = true
 
-# Stage 5 hardware SDKs ship no type stubs. Lazy-imported behind the
-# [sdr-uhd] extra; mypy treats them as Any.
+# Stage 5 hardware SDKs + transports. uhd ships no stubs; httpx / websockets
+# ship stubs but are not installed in the lint CI job (they live behind the
+# [sdr-uhd] / [rotator-antrunner] / [geometry-grbl] extras). All lazy-imported.
 [[tool.mypy.overrides]]
-module = ["uhd.*"]
+module = ["uhd.*", "httpx.*", "websockets.*"]
 ignore_missing_imports = true
 
 # SciPy ships no type stubs.
