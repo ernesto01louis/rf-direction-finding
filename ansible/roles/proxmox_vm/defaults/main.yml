@@ -1,0 +1,24 @@
+---
+# proxmox_vm — defaults for the Windows-11 VM shell (rfdf-winrf).
+#
+# Proxmox has no clean automated Windows-install story, so this role creates
+# the VM SHELL only: CPU/RAM/disk, the install ISO, and the VirtIO driver ISO.
+# The operator then runs the Windows installer interactively once and snapshots
+# the result. Full steps: docs/infrastructure/proxmox-setup.md "Win11 VM".
+
+# OSType for a modern Windows guest.
+proxmox_vm_ostype: "win11"
+
+# VirtIO driver ISO (network + storage drivers the Windows installer needs).
+# Download from https://fedorapeople.org/groups/virt/virtio-win/ and upload to
+# the template storage. Leave empty to attach no driver ISO.
+proxmox_vm_virtio_iso: "virtio-win.iso"
+
+# Machine type + firmware. q35 + OVMF (UEFI) is required for Windows 11.
+proxmox_vm_machine: "q35"
+proxmox_vm_bios: "ovmf"
+
+# GPU passthrough is intentionally OFF for Stage 6 — the GPU is reserved for ML
+# training. A tool that needs GPU acceleration can get a separate passthrough
+# later; see docs/infrastructure/proxmox-setup.md.
+proxmox_vm_gpu_passthrough: false

@@ -1,0 +1,23 @@
+# Authelia user database — EXAMPLE.
+#
+# The Ansible `authelia` role renders the real users_database.yml from vault
+# variables (authelia_admin_*). For standalone use, copy this file to
+# users_database.yml and replace the password hash.
+#
+# Generate an argon2 hash:
+#   docker run --rm authelia/authelia:4.39.5 \
+#     authelia crypto hash generate argon2 --password '<your-password>'
+#
+# A homelab needs exactly one user. To scale to many users or LDAP, see
+# docs/infrastructure/authentication.md (LDAP is a documented pointer, not
+# implemented).
+---
+users:
+  operator:
+    disabled: false
+    displayname: 'RF Operator'
+    # argon2id hash of the login password — REPLACE.
+    password: '$argon2id$v=19$m=65536,t=3,p=4$REPLACEREPLACEREPLACE'
+    email: 'operator@rf.lan'
+    groups:
+      - 'admins'

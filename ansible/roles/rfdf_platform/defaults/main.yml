@@ -1,0 +1,18 @@
+---
+# rfdf_platform — install the rfdf platform on the core host.
+
+rfdf_user: rfdf
+rfdf_home: /opt/rfdf
+rfdf_venv: /opt/rfdf/venv
+
+# Extras installed alongside the base package. The CLI works with the base
+# install; [ml] adds the training/inference pipeline.
+rfdf_extras: "ml"
+
+# rfdf REST API. NOT yet implemented (Stage 7) — the systemd unit ships
+# disabled. Flip to true once src/rfdf/api/ exists.
+rfdf_api_enabled: false
+rfdf_api_host: "0.0.0.0"
+rfdf_api_port: 8000
+# ExecStart for the API service. Placeholder until the Stage-7 API lands.
+rfdf_api_exec: "{{ rfdf_venv }}/bin/python -m rfdf.api"

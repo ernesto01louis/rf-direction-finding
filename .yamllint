@@ -1,0 +1,25 @@
+# yamllint config for the Stage 6 infrastructure tree.
+# infra-ci.yml runs this against ansible/ and docker-compose/ only.
+extends: default
+
+# Galaxy-installed collections + the local venv are not ours to lint.
+ignore: |
+  ansible/collections/
+  .ansible-venv/
+
+rules:
+  line-length:
+    max: 200
+    level: warning
+  document-start: disable      # compose.yml files have no leading ---
+  comments:
+    min-spaces-from-content: 1
+  comments-indentation: disable
+  truthy:
+    allowed-values: ["true", "false"]
+    check-keys: false
+  braces:
+    max-spaces-inside: 1        # inventory uses { key: val } one-liners
+  octal-values:
+    forbid-implicit-octal: true
+    forbid-explicit-octal: true

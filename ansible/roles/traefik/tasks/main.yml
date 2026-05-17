@@ -1,0 +1,19 @@
+---
+# traefik — deploy the edge reverse proxy on rfdf-dashboard.
+# Thin wrapper over docker_stack; all routing lives in the Compose stack's
+# config/dynamic.yml and hot-reloads on change.
+
+- name: Deploy the Traefik Compose stack
+  ansible.builtin.include_role:
+    name: docker_stack
+  vars:
+    stack_name: traefik
+    stack_env:
+      COMPOSE_PROJECT_NAME: traefik
+
+- name: Wait for Traefik to answer on :443
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 443
+    timeout: 60
+  delegate_to: localhost

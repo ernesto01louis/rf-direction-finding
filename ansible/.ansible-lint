@@ -1,0 +1,16 @@
+# ansible-lint config for the Stage 6 deployment tree.
+profile: basic
+
+exclude_paths:
+  - collections/
+  - .ansible-venv/
+  - ../.ansible-venv/
+
+# docker_stack is a deliberate generic helper role — its interface vars
+# (stack_name, stack_env, ...) and short registered locals are intentional.
+skip_list:
+  - var-naming[no-role-prefix]
+
+# vault/secrets.example.yml is an intentional plaintext template.
+kinds:
+  - vars: "vault/*.yml"

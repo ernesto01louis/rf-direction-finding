@@ -1,0 +1,6 @@
+# Authelia runtime state + secrets — never committed.
+.env
+data/
+redis-data/
+secrets/
+users_database.yml

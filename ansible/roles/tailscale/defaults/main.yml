@@ -1,0 +1,12 @@
+---
+# tailscale — defaults.
+# The whole role no-ops when tailscale_enabled is false (group_vars/all.yml).
+# The playbooks are fully functional on plain LAN without Tailscale.
+
+# Extra `tailscale up` flags. --ssh enables Tailscale SSH; --accept-routes lets
+# the host reach subnet routes advertised elsewhere on the tailnet.
+tailscale_up_flags: "--ssh --accept-routes"
+
+# Advertise this host as exposing no routes by default. Operators who want a
+# host to act as a subnet router override this per-host in inventory.yml.
+tailscale_advertise_routes: ""

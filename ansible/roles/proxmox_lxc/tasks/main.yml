@@ -1,0 +1,67 @@
+---
+# proxmox_lxc — create + start one LXC container on Proxmox, then wait for SSH.
+#
+# Runs inside the 00-bootstrap play (connection: local). Each "host" in the
+# play is a guest to create; the API call is delegated to the control node.
+# Idempotent: community.proxmox.proxmox reconciles to `state: present`.
+
+- name: "Resolve effective sizing + network string: {{ inventory_hostname }}"
+  ansible.builtin.set_fact:
+    _lxc: "{{ proxmox_lxc_defaults | combine(proxmox_guest_sizing[inventory_hostname] | default({})) }}"
+    _net0base: "name=eth0,bridge={{ proxmox_bridge }},ip={{ ansible_host }}/{{ proxmox_netmask }},gw={{ proxmox_gateway }}"
+    _net0tag: "{{ ',tag=' + proxmox_vlan_tag if proxmox_vlan_tag else '' }}"
+
+- name: "Create LXC container: {{ inventory_hostname }}"
+  community.proxmox.proxmox:
+    api_host: "{{ proxmox_api_host }}"
+    api_user: "{{ proxmox_api_user }}"
+    api_token_id: "{{ proxmox_api_token_id }}"
+    api_token_secret: "{{ proxmox_api_token_secret }}"
+    validate_certs: "{{ proxmox_api_validate_certs }}"
+    node: "{{ proxmox_node }}"
+    vmid: "{{ proxmox_vmid }}"
+    hostname: "{{ inventory_hostname }}"
+    ostemplate: "{{ proxmox_template_storage }}:vztmpl/{{ proxmox_lxc_template }}"
+    storage: "{{ proxmox_storage }}"
+    disk: "{{ proxmox_storage }}:{{ _lxc.disk }}"
+    cores: "{{ _lxc.cores }}"
+    memory: "{{ _lxc.memory }}"
+    swap: "{{ _lxc.memory }}"
+    unprivileged: "{{ not (_lxc.privileged | default(false)) }}"
+    onboot: "{{ _lxc.onboot | default(true) }}"
+    # nesting+keyctl required for Docker-in-LXC; harmless on plain hosts.
+    features:
+      - "nesting={{ 1 if 'docker' in group_names else 0 }}"
+      - "keyctl={{ 1 if 'docker' in group_names else 0 }}"
+    netif:
+      net0: "{{ _net0base }}{{ _net0tag }}"
+    nameserver: "{{ proxmox_nameserver }}"
+    timezone: "{{ infra_timezone }}"
+    pubkey: "{{ proxmox_lxc_pubkey }}"
+    state: present
+  delegate_to: localhost
+
+- name: "Start LXC container: {{ inventory_hostname }}"
+  community.proxmox.proxmox:
+    api_host: "{{ proxmox_api_host }}"
+    api_user: "{{ proxmox_api_user }}"
+    api_token_id: "{{ proxmox_api_token_id }}"
+    api_token_secret: "{{ proxmox_api_token_secret }}"
+    validate_certs: "{{ proxmox_api_validate_certs }}"
+    node: "{{ proxmox_node }}"
+    vmid: "{{ proxmox_vmid }}"
+    state: started
+  delegate_to: localhost
+
+# USB device passthrough for the capture host (rfdf-daq).
+- name: "Configure USB passthrough: {{ inventory_hostname }}"
+  when: usb_passthrough | default(false)
+  ansible.builtin.include_tasks: usb_passthrough.yml
+
+- name: "Wait for SSH: {{ inventory_hostname }}"
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 22
+    timeout: "{{ proxmox_lxc_boot_timeout }}"
+    delay: 3
+  delegate_to: localhost

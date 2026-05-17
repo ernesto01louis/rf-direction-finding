@@ -1,0 +1,4 @@
+---
+# traefik — defaults. Routing config lives in the Compose stack
+# (docker-compose/traefik/config/), not here.
+traefik_stack_name: traefik

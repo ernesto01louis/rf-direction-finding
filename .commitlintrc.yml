@@ -37,6 +37,7 @@ rules:
       - ci
       - tests
       - tools
+      - infra        # Stage 6 — Ansible / Docker ecosystem hosting
       - examples
       - release
       - deps

@@ -1,0 +1,51 @@
+# ---------------------------------------------------------------------------
+# group_vars/proxmox.yml — Proxmox host + guest-creation defaults.
+#
+# Consumed by the proxmox_lxc / proxmox_vm roles and the 00-bootstrap playbook.
+# The API token is a SECRET: keep proxmox_api_token_secret in vault/secrets.yml,
+# never here.
+# ---------------------------------------------------------------------------
+
+# --- Proxmox API connection -------------------------------------------------
+proxmox_api_host: "192.168.2.13"
+proxmox_api_user: "root@pam"
+proxmox_api_token_id: "rfdf-ansible"          # create: pveum user token add ...
+# proxmox_api_token_secret:  <-- defined in vault/secrets.yml
+proxmox_node: "pve"                            # `pvesh get /nodes` to confirm
+proxmox_api_validate_certs: false              # self-signed homelab cert
+
+# --- Guest placement defaults ----------------------------------------------
+proxmox_storage: "local-lvm"                   # rootfs / disk storage pool
+proxmox_template_storage: "local"              # where templates + ISOs live
+proxmox_lxc_template: "debian-12-standard_12.7-1_amd64.tar.zst"
+proxmox_win_iso: "Win11_24H2_EnglishInternational_x64.iso"
+
+# --- Networking -------------------------------------------------------------
+proxmox_bridge: "vmbr0"
+proxmox_vlan_tag: ""                           # "" = untagged; set e.g. 20 if VLAN'd
+proxmox_gateway: "192.168.2.1"
+proxmox_netmask: 24
+proxmox_nameserver: "192.168.2.1"
+
+# --- Per-role default sizing (overridable per host in inventory) -----------
+# cores / memory(MiB) / disk(GiB) / privileged(bool, LXC only)
+proxmox_lxc_defaults:
+  cores: 2
+  memory: 2048
+  disk: 16
+  privileged: false
+  onboot: true
+
+# Sizing overrides keyed by inventory hostname. Anything absent uses the
+# defaults above. Tuned to the Stage 6 brief's role descriptions.
+proxmox_guest_sizing:
+  rfdf-platform: { cores: 2, memory: 2048, disk: 16 }
+  rfdf-tools: { cores: 4, memory: 8192, disk: 80 }
+  rfdf-kasm: { cores: 4, memory: 8192, disk: 60 }
+  rfdf-guac: { cores: 2, memory: 4096, disk: 30 }
+  rfdf-mltrain: { cores: 2, memory: 2048, disk: 16 }
+  rfdf-dashboard: { cores: 2, memory: 4096, disk: 30 }
+  rfdf-jupyter: { cores: 4, memory: 8192, disk: 40 }
+  rfdf-openwebrx: { cores: 2, memory: 2048, disk: 20 }
+  rfdf-daq: { cores: 4, memory: 4096, disk: 30, privileged: true }
+  rfdf-winrf: { cores: 4, memory: 8192, disk: 64 }

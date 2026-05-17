@@ -1,0 +1,156 @@
+# Traefik v3 dynamic configuration — every ingressed rfdf service.
+#
+# Routers for services not yet deployed simply return 502 until the relevant
+# Stage-6 sub-session brings them up; the file is complete from PR 1 onward.
+#
+# Backends on OTHER LXCs are addressed by LAN IP; backends co-located with
+# Traefik on rfdf-dashboard (Authelia, Homepage, Grafana, Prometheus) are
+# addressed by container name over the shared `rfdf-edge` network.
+#
+# Default domain: rf.lan. Operators on a different domain edit this file
+# (Traefik's file provider does not do env substitution).
+http:
+  # --- Middlewares ---------------------------------------------------------
+  middlewares:
+    # Authelia ForwardAuth — applied to every router except the auth portal.
+    authelia:
+      forwardAuth:
+        address: "http://authelia:9091/api/authz/forward-auth"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - Remote-User
+          - Remote-Groups
+          - Remote-Name
+          - Remote-Email
+    # Security headers applied site-wide.
+    secure-headers:
+      headers:
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        stsSeconds: 31536000
+
+  # --- Routers -------------------------------------------------------------
+  routers:
+    homepage:
+      rule: "Host(`rf.lan`)"
+      service: homepage
+      entryPoints: [websecure]
+      middlewares: [authelia, secure-headers]
+      tls: {}
+    # Authelia's own portal — NEVER behind the authelia middleware.
+    authelia:
+      rule: "Host(`auth.rf.lan`)"
+      service: authelia
+      entryPoints: [websecure]
+      middlewares: [secure-headers]
+      tls: {}
+    traefik-dashboard:
+      rule: "Host(`traefik.rf.lan`)"
+      service: api@internal
+      entryPoints: [websecure]
+      middlewares: [authelia, secure-headers]
+      tls: {}
+    kasm:
+      rule: "Host(`kasm.rf.lan`)"
+      service: kasm
+      entryPoints: [websecure]
+      middlewares: [authelia, secure-headers]
+      tls: {}
+    guacamole:
+      rule: "Host(`guac.rf.lan`)"
+      service: guacamole
+      entryPoints: [websecure]
+      middlewares: [authelia, secure-headers]
+      tls: {}
+    openwebrx:
+      rule: "Host(`sdr.rf.lan`)"
+      service: openwebrx
+      entryPoints: [websecure]
+      middlewares: [authelia, secure-headers]
+      tls: {}
+    jupyter:
+      rule: "Host(`jupyter.rf.lan`)"
+      service: jupyter
+      entryPoints: [websecure]
+      middlewares: [authelia, secure-headers]
+      tls: {}
+    code-server:
+      rule: "Host(`code.rf.lan`)"
+      service: code-server
+      entryPoints: [websecure]
+      middlewares: [authelia, secure-headers]
+      tls: {}
+    rfdf-api:
+      rule: "Host(`api.rf.lan`)"
+      service: rfdf-api
+      entryPoints: [websecure]
+      middlewares: [authelia, secure-headers]
+      tls: {}
+    grafana:
+      rule: "Host(`grafana.rf.lan`)"
+      service: grafana
+      entryPoints: [websecure]
+      middlewares: [authelia, secure-headers]
+      tls: {}
+    prometheus:
+      rule: "Host(`prometheus.rf.lan`)"
+      service: prometheus
+      entryPoints: [websecure]
+      middlewares: [authelia, secure-headers]
+      tls: {}
+
+  # --- Services ------------------------------------------------------------
+  services:
+    homepage:
+      loadBalancer:
+        servers:
+          - url: "http://homepage:3000"
+    authelia:
+      loadBalancer:
+        servers:
+          - url: "http://authelia:9091"
+    kasm:
+      loadBalancer:
+        servers:
+          - url: "https://192.168.2.242:443"
+        serversTransport: insecure-tls
+    guacamole:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.2.243:8080"
+    openwebrx:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.2.248:8073"
+    jupyter:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.2.247:8889"
+    code-server:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.2.247:8443"
+    rfdf-api:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.2.239:8000"
+    grafana:
+      loadBalancer:
+        servers:
+          - url: "http://grafana:3000"
+    prometheus:
+      loadBalancer:
+        servers:
+          - url: "http://prometheus:9090"
+
+  # Kasm serves its own self-signed TLS — skip verification on that hop.
+  serversTransports:
+    insecure-tls:
+      insecureSkipVerify: true
+
+# TLS store — Traefik's self-signed default certificate covers every *.rf.lan
+# router. Replace with ACME / step-ca certs for browser-trusted TLS.
+tls:
+  stores:
+    default: {}

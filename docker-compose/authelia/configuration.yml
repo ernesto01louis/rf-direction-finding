@@ -1,0 +1,74 @@
+# Authelia configuration — secret-free.
+# Every secret (JWT, session, storage-encryption, Redis, OIDC HMAC + key) is
+# injected via AUTHELIA_* environment variables from .env — see .env.example.
+# Default domain: rf.lan. Operators on a different domain edit this file.
+---
+theme: dark
+
+server:
+  address: 'tcp://:9091/'
+
+log:
+  level: info
+
+totp:
+  # First login does NOT require 2FA — the operator enrols TOTP afterwards.
+  # See docs/infrastructure/authentication.md.
+  issuer: 'rf.lan'
+
+authentication_backend:
+  file:
+    path: '/config/users_database.yml'
+    password:
+      algorithm: 'argon2'
+
+# Single-factor is enough to reach the auth portal itself; everything else
+# requires two-factor once the operator has enrolled a TOTP device.
+access_control:
+  default_policy: 'deny'
+  rules:
+    - domain: 'auth.rf.lan'
+      policy: 'bypass'
+    - domain: ['rf.lan', '*.rf.lan']
+      policy: 'two_factor'
+
+session:
+  name: 'authelia_session'
+  expiration: '1h'
+  inactivity: '5m'
+  cookies:
+    - domain: 'rf.lan'
+      authelia_url: 'https://auth.rf.lan'
+      default_redirection_url: 'https://rf.lan'
+  redis:
+    host: 'redis'
+    port: 6379
+
+regulation:
+  max_retries: 3
+  find_time: '2m'
+  ban_time: '5m'
+
+storage:
+  local:
+    path: '/data/db.sqlite3'
+
+# Filesystem notifier — password-reset / 2FA messages are written to a file
+# inside the container (read with `docker compose exec authelia cat
+# /data/notification.txt`). Fine for a solo homelab. For real mail, comment
+# this out and configure the smtp notifier — see .env.example + the README.
+notifier:
+  filesystem:
+    filename: '/data/notification.txt'
+
+# OIDC provider. ForwardAuth (via Traefik) gates every service today; this
+# block makes Authelia *also* a native OIDC provider for services that speak
+# it. HMAC secret + JWKS signing key come from the environment. Clients are
+# registered as services adopt native OIDC (Grafana is wired in PR 4).
+identity_providers:
+  oidc:
+    jwks:
+      - key_id: 'rfdf'
+        algorithm: 'RS256'
+        use: 'sig'
+    clients: []

@@ -1,0 +1,9 @@
+---
+# proxmox_lxc — defaults. See group_vars/proxmox.yml for the API + sizing vars.
+
+# Public SSH key injected into every container so Ansible can connect after
+# creation. Defaults to the control node's key.
+proxmox_lxc_pubkey: "{{ lookup('file', lookup('env', 'HOME') + '/.ssh/id_ed25519.pub') }}"
+
+# Seconds to wait for a freshly-booted container to accept SSH.
+proxmox_lxc_boot_timeout: 180

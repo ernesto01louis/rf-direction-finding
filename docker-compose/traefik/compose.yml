@@ -1,0 +1,31 @@
+# Traefik v3 — edge reverse proxy for the rfdf ecosystem.
+# Standalone: `cp .env.example .env`, then `docker compose up -d`.
+# Ansible deploys this same stack via the `traefik` role on rfdf-dashboard.
+name: traefik
+
+services:
+  traefik:
+    image: traefik:v3.3.5          # pinned; bump via Renovate, never :latest
+    container_name: traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./config/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - ./certs:/certs                       # ACME store / custom certs (gitignored)
+    networks:
+      - rfdf-edge
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  # Shared edge network — Authelia, Homepage, Grafana, Prometheus join this so
+  # Traefik reaches them by container name. Created by the `docker` role.
+  rfdf-edge:
+    external: true
+    name: rfdf-edge

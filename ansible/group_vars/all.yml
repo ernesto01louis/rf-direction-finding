@@ -1,0 +1,33 @@
+# ---------------------------------------------------------------------------
+# group_vars/all.yml — variables shared by every host.
+# Non-secret defaults only. Secrets live in vault/secrets.yml (ansible-vault).
+# ---------------------------------------------------------------------------
+
+# Base domain for all ingressed services. Traefik routers match Host(`*.rf.lan`).
+# Operators without their own DNS use Pi-hole / /etc/hosts (see docs) or the
+# Tailscale MagicDNS preset documented in docs/infrastructure/tailscale.md.
+infra_domain: "rf.lan"
+
+# Locale / time. Authelia TOTP and Prometheus alerting are time-sensitive —
+# every host is forced to NTP-synced UTC-aware time via this timezone.
+infra_timezone: "Europe/Berlin"
+infra_locale: "en_US.UTF-8"
+
+# Operator notification sink. The Alertmanager -> ntfy bridge (Stage 6 §12)
+# and any role that emits a notice publish here. This is the operator's
+# EXISTING ntfy instance — not provisioned by these playbooks.
+ntfy_base_url: "http://192.168.2.203:8090"
+ntfy_topic: "rfdf-infra"
+
+# Tailscale. Off by default — the playbooks are fully functional on plain LAN.
+# Set tailscale_enabled: true and provide tailscale_auth_key in the vault to
+# join every host to the tailnet. See docs/infrastructure/tailscale.md.
+tailscale_enabled: false
+
+# rfdf platform source — the rfdf_platform role and the jupyter image install
+# from here. Pinned to the Stage-5 tag; bump per release.
+rfdf_repo_url: "https://github.com/ernesto01louis/rf-direction-finding.git"
+rfdf_repo_version: "v0.1.0-alpha"
+
+# Apply OS security updates on every run (idempotent; safe to leave on).
+infra_unattended_upgrades: true

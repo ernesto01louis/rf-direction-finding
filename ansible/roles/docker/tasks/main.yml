@@ -1,0 +1,59 @@
+---
+# docker — install Docker CE + the Compose v2 plugin, configure the daemon,
+# and create the shared edge network Traefik uses to reach service containers.
+
+- name: Add the Docker apt signing key
+  ansible.builtin.get_url:
+    url: "https://download.docker.com/linux/debian/gpg"
+    dest: /usr/share/keyrings/docker.asc
+    mode: "0644"
+
+- name: Add the Docker apt repository
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [arch=amd64 signed-by=/usr/share/keyrings/docker.asc]
+      https://download.docker.com/linux/debian bookworm {{ docker_apt_release_channel }}
+    filename: docker
+    state: present
+
+- name: Install Docker CE + Compose plugin
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: true
+
+- name: Configure the Docker daemon
+  ansible.builtin.copy:
+    dest: /etc/docker/daemon.json
+    content: "{{ docker_daemon_options | to_nice_json }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart docker
+
+- name: Enable and start Docker
+  ansible.builtin.systemd:
+    name: docker
+    enabled: true
+    state: started
+
+- name: Flush handlers so the daemon restart lands before stacks deploy
+  ansible.builtin.meta: flush_handlers
+
+- name: Create the shared Traefik edge network
+  community.docker.docker_network:
+    name: "{{ docker_proxy_network }}"
+    state: present
+
+- name: Ensure the Compose stacks root exists
+  ansible.builtin.file:
+    path: "{{ docker_stacks_root }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"

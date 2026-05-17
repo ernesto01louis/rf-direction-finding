@@ -1,0 +1,22 @@
+# ---------------------------------------------------------------------------
+# group_vars/docker.yml — defaults for the `docker` role and the Compose stacks.
+# Applies to every host in the docker_lxc group.
+# ---------------------------------------------------------------------------
+
+# Docker CE channel. apt repo + GPG key are pinned by the docker role.
+docker_apt_release_channel: "stable"
+
+# Where Compose stacks are deployed on each Docker host. Each service gets
+# /opt/stacks/<service>/ with its compose.yml + config tree.
+docker_stacks_root: "/opt/stacks"
+
+# Docker daemon tuning — log rotation so a chatty container can't fill the LXC.
+docker_daemon_options:
+  log-driver: "json-file"
+  log-opts:
+    max-size: "10m"
+    max-file: "3"
+
+# A single shared external network so Traefik can reach service containers
+# that live in sibling Compose projects on the same host.
+docker_proxy_network: "rfdf-edge"

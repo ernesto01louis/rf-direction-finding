@@ -91,3 +91,15 @@ site/
 *.onnx
 *.tflite
 *.mlmodel
+
+# Stage 6 infrastructure — operator-specific + runtime state, never committed.
+.ansible-venv/
+ansible/collections/
+ansible/.vault-pass
+ansible/inventory.yml
+ansible/vault/secrets.yml
+*.retry
+# Compose runtime state (the .example/config files ARE tracked).
+docker-compose/**/data/
+docker-compose/**/redis-data/
+docker-compose/**/certs/

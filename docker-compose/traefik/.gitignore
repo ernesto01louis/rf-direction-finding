@@ -1,0 +1,4 @@
+# Traefik-populated TLS material — never committed.
+certs/
+acme.json
+.env

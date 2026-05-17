@@ -1,0 +1,29 @@
+---
+# 00-bootstrap — create the LXC/VM tree on Proxmox, then apply base OS config.
+#
+# Plays 1+2 run on the control node and talk to the Proxmox API. Play 3
+# connects to the freshly-booted LXC guests over SSH. The Windows VM is a
+# shell only — it gets no base play (Windows is installed by hand).
+#
+# Idempotent + isolatable: re-running reconciles; running it alone is safe.
+
+- name: Create LXC containers on Proxmox
+  hosts: lxc
+  connection: local
+  gather_facts: false
+  roles:
+    - proxmox_lxc
+
+- name: Create the Windows VM shell on Proxmox
+  hosts: vm
+  connection: local
+  gather_facts: false
+  roles:
+    - proxmox_vm
+
+- name: Apply base OS configuration to every LXC
+  hosts: lxc
+  gather_facts: true
+  roles:
+    - common
+    - tailscale

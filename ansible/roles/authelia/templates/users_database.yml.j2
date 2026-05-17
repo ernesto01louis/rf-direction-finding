@@ -1,0 +1,11 @@
+---
+# {{ ansible_managed }}
+# Rendered by the authelia role from vault variables. Do not edit on the host.
+users:
+  {{ authelia_admin_username }}:
+    disabled: false
+    displayname: '{{ authelia_admin_display_name }}'
+    password: '{{ authelia_admin_password_hash }}'
+    email: '{{ authelia_admin_email }}'
+    groups:
+      - 'admins'
