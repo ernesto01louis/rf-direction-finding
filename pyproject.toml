@@ -172,6 +172,7 @@ module = [
     "onnxruntime.*",
     "coremltools.*",
     "ai_edge_torch.*",
+    "litert_torch.*",
     "tensorflow.*",
     "sklearn.*",
     "h5py.*",
