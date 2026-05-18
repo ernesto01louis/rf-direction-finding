@@ -36,6 +36,7 @@ __all__ = [
     "Hindsight",
     "Ntfy",
     "OrchestratorNotAvailableError",
+    "RfdfConsumer",
     "Vault",
     "capability",
     "is_available",
@@ -49,6 +50,7 @@ _LAZY_NAMES = frozenset(
         "Consumer",
         "Hindsight",
         "Ntfy",
+        "RfdfConsumer",
         "Vault",
         "capability",
     }

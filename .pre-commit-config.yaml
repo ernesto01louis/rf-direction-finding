@@ -44,12 +44,13 @@ repos:
           - "numpy>=1.26"
           - "types-PyYAML"
         # Limit mypy to the package under src/; tests are excluded by pyproject.toml.
-        # src/rfdf/ml/ and src/rfdf/backends/compute/ are excluded here: they
-        # import the heavy [ml] / [compute-*] SDKs (torch, runpod, ...) that this
-        # isolated hook env cannot carry. The `lint` CI job installs those extras
-        # and is the complete mypy gate for those subtrees.
+        # src/rfdf/ml/, src/rfdf/backends/compute/, and src/rfdf/orchestrator/ are
+        # excluded here: they import heavy / optional SDKs (torch, runpod,
+        # ai-orchestrator-client) that this isolated hook env cannot carry. The
+        # `lint` CI job installs those extras and is the complete mypy gate for
+        # those subtrees.
         files: ^src/rfdf/
-        exclude: ^src/rfdf/(ml|backends/compute)/
+        exclude: ^src/rfdf/(ml|backends/compute|orchestrator)/
 
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v3.31.0

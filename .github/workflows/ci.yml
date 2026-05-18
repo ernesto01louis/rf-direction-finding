@@ -25,10 +25,10 @@ jobs:
           python-version: "3.11"
           cache: pip
           cache-dependency-path: pyproject.toml
-      - name: Install dev + ML extras
+      - name: Install dev + ML + orchestrator extras
         run: |
           python -m pip install -U pip
-          python -m pip install -e '.[dev,ml,ml-onnx]'
+          python -m pip install -e '.[dev,ml,ml-onnx,orchestrator]'
       - name: ruff check
         run: ruff check .
       - name: ruff format --check
