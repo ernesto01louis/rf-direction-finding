@@ -9,12 +9,15 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 ARG RFDF_VERSION=v0.1.0-alpha
 
+# rfdf requires Python >=3.11; the kasm jammy base ships Python 3.10. Pull
+# python3.11 from the `universe` component (trimmed out of the base sources).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3 \
-        python3-venv \
-        python3-pip \
+        software-properties-common \
+    && add-apt-repository -y universe \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        python3.11 \
+        python3.11-venv \
         git \
-        build-essential \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -26,7 +29,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # the /opt/rftools NFS mount (rftools venv) and on the dedicated rfdf-jupyter
 # host. Operators who want [ml] inside the image add it in-workspace:
 #   /opt/rfdf/bin/pip install 'rfdf[ml]'
-RUN python3 -m venv /opt/rfdf \
+RUN python3.11 -m venv /opt/rfdf \
+    && /opt/rfdf/bin/pip install --no-cache-dir --upgrade pip \
     && /opt/rfdf/bin/pip install --no-cache-dir \
         jupyterlab \
         "rfdf @ git+https://github.com/ernesto01louis/rf-direction-finding.git@${RFDF_VERSION}"

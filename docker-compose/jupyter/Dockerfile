@@ -7,10 +7,18 @@ ARG RFDF_VERSION=v0.1.0-alpha
 # The [ml] extra's torchsig dependency tree backtracks pip for hours inside a
 # Docker build; ML work happens on the rfdf-tools NFS venv or the dedicated
 # rfdf-jupyter host. Add it in-container if needed: /opt/rfdf/bin/pip install 'rfdf[ml]'.
+#
+# rfdf requires Python >=3.11; the linuxserver jammy base ships 3.10, so
+# python3.11 is pulled from `universe`.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3-venv \
+        software-properties-common \
+    && add-apt-repository -y universe \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        python3.11 \
+        python3.11-venv \
         git \
-    && python3 -m venv /opt/rfdf \
+    && python3.11 -m venv /opt/rfdf \
+    && /opt/rfdf/bin/pip install --no-cache-dir --upgrade pip \
     && /opt/rfdf/bin/pip install --no-cache-dir \
         "rfdf @ git+https://github.com/ernesto01louis/rf-direction-finding.git@${RFDF_VERSION}" \
     && apt-get clean \
