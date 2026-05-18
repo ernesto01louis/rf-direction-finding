@@ -11,6 +11,50 @@ recorded here per the release.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-05-18
+
+Stage 7 — orchestrator integration + REST API. The build is complete; the
+public API (the `rfdf` package surface, the CLI, the REST endpoints, the HAL
+Protocol classes) is now stable under Semantic Versioning.
+
+### Added — optional orchestrator integration (`[orchestrator]` extra)
+
+- `rfdf.orchestrator` — a lazy-import wrapper. `import rfdf.orchestrator`
+  always succeeds; accessing an integration class without the extra raises
+  `OrchestratorNotAvailableError` with an install hint. `ai-orchestrator-client`
+  is imported only inside `rfdf.orchestrator._real` and its siblings.
+- `RfdfConsumer` — registers rfdf as an orchestrator consumer with
+  `@capability` adapters (`rf.doa.run`, `rf.classify`, `rf.geometry.morph`)
+  that delegate to the standalone platform API.
+- `RfdfEvidenceBundle` + `build_bundle` — citation-grade evidence bundles in
+  rfdf's own schema, with a SHA-256 reproducibility hash and an explicit
+  `quality` flag (`citation-grade` / `degraded`); `to_evidence_push` bridges
+  to the orchestrator's schema.
+- `RfdfRecorder` — Hindsight memory writes + L5 vault notes (`rf-detection`,
+  `rf-calibration`, `rf-geometry-preset`, `rf-model-card`, `rf-campaign`).
+- `FlowgraphBridge` — planner-dispatched GNU Radio flowgraph generation,
+  `grcc --no-execute` validation, and deployment.
+- `RfdfAlerts` — ntfy alerting on three channels (`alerts` / `ops` / `research`).
+- `rfdf orchestrator {status,register,hindsight,vault,planner}` CLI — each
+  subcommand degrades gracefully without the extra.
+
+### Added — REST API (`[api]` extra)
+
+- `rfdf.api` — a FastAPI app: `GET /healthz`, `GET /capabilities`, and
+  `POST /capabilities/{capability}` (the orchestrator's callback target).
+  `rfdf api serve` runs it; `RFDF_API_TOKEN` gates the capability routes.
+
+### Added — documentation
+
+- `examples/06-standalone-vs-orchestrator/` — the same DOA run, standalone
+  and orchestrator-connected, side by side.
+- `docs/orchestrator/` (7 pages) + `docs/standalone-vs-orchestrator.md` +
+  `docs/audit-pass.md`.
+
+### Changed
+
+- `[orchestrator]` extra pinned to `ai-orchestrator-client>=0.1.1,<0.2`.
+
 ## [0.1.0-beta] - 2026-05-17
 
 Stage 6 — the operator-facing software ecosystem. Pure infrastructure: the
