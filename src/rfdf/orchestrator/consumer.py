@@ -103,16 +103,20 @@ class RfdfConsumer(Consumer):
         ``[real, imag]`` pairs). Requires the ``[ml]`` extra and a model
         in the registry; raises a clear error otherwise.
         """
+        import importlib
+
         import numpy as np
 
-        from rfdf.ml.inference import Classifier
+        # Imported dynamically: rfdf.ml pulls the heavy [ml] stack, which
+        # is needed only when this capability actually runs.
+        inference = importlib.import_module("rfdf.ml.inference")
 
         model_id = payload["model_id"]
         backend = payload.get("backend", "torch")
         raw = payload["iq"]
         iq = np.asarray(raw, dtype=np.complex64)
 
-        classifier = Classifier.from_registry(model_id, backend=backend)
+        classifier = inference.Classifier.from_registry(model_id, backend=backend)
         result = classifier.predict(iq)
         return {
             "model_id": model_id,
