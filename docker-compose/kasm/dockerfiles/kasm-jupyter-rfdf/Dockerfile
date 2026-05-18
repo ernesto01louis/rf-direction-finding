@@ -18,8 +18,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# rfdf + JupyterLab in a dedicated venv.
+# rfdf + JupyterLab in a dedicated venv. Torch is installed first from the
+# CPU-only index — the default wheel bundles ~2 GB of CUDA libraries that a
+# browser-streamed desktop never uses, which made the image build pathological.
 RUN python3 -m venv /opt/rfdf \
+    && /opt/rfdf/bin/pip install --no-cache-dir \
+        --index-url https://download.pytorch.org/whl/cpu \
+        torch torchvision \
     && /opt/rfdf/bin/pip install --no-cache-dir \
         jupyterlab \
         "rfdf[ml] @ git+https://github.com/ernesto01louis/rf-direction-finding.git@${RFDF_VERSION}"
