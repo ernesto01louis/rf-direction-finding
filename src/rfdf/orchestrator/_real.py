@@ -19,6 +19,7 @@ import ai_orchestrator_client as aoc
 
 from .consumer import RfdfConsumer
 from .evidence import RfdfEvidenceBundle, build_bundle
+from .ntfy import RfdfAlerts
 from .planner import FlowgraphBridge
 from .vault import RfdfRecorder
 
@@ -35,6 +36,7 @@ __all__ = [
     "FlowgraphBridge",
     "Hindsight",
     "Ntfy",
+    "RfdfAlerts",
     "RfdfConsumer",
     "RfdfEvidenceBundle",
     "RfdfRecorder",
