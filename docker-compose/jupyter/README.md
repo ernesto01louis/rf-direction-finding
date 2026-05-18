@@ -7,7 +7,10 @@ The research scratchpad — ad-hoc experiments, paper figures, exploration.
 | `code-server` | `Dockerfile`              | 8443 | `code.rf.lan`   |
 | `jupyterlab`  | `Dockerfile.jupyter`      | 8889 | `jupyter.rf.lan`|
 
-Both images extend an upstream base with `rfdf[ml]` pre-installed.
+Both images extend an upstream base with base `rfdf` pre-installed. The heavy
+`[ml]` extra (torchsig's dependency tree backtracks pip for hours inside a
+Docker build) is **not** baked in — add it in-container when needed
+(`/opt/rfdf/bin/pip install 'rfdf[ml]'`) or use the rfdf-tools NFS venv.
 
 > **Port note:** JupyterLab runs on **8889**, not the usual 8888 — Hindsight
 > already uses 8888 on `192.168.2.203`. Recorded in

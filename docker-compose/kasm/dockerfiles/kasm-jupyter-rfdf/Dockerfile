@@ -18,16 +18,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# rfdf + JupyterLab in a dedicated venv. Torch is installed first from the
-# CPU-only index — the default wheel bundles ~2 GB of CUDA libraries that a
-# browser-streamed desktop never uses, which made the image build pathological.
+# JupyterLab + the rfdf platform (base install) in a dedicated venv.
+#
+# The image installs base `rfdf`, NOT `rfdf[ml]`: the [ml] extra's torchsig
+# dependency tree sends pip's resolver into multi-hour backtracking inside a
+# Docker build. The full ML stack is available to this workspace anyway via
+# the /opt/rftools NFS mount (rftools venv) and on the dedicated rfdf-jupyter
+# host. Operators who want [ml] inside the image add it in-workspace:
+#   /opt/rfdf/bin/pip install 'rfdf[ml]'
 RUN python3 -m venv /opt/rfdf \
     && /opt/rfdf/bin/pip install --no-cache-dir \
-        --index-url https://download.pytorch.org/whl/cpu \
-        torch torchvision \
-    && /opt/rfdf/bin/pip install --no-cache-dir \
         jupyterlab \
-        "rfdf[ml] @ git+https://github.com/ernesto01louis/rf-direction-finding.git@${RFDF_VERSION}"
+        "rfdf @ git+https://github.com/ernesto01louis/rf-direction-finding.git@${RFDF_VERSION}"
 
 COPY ./shortcuts/ /usr/share/applications/
 
