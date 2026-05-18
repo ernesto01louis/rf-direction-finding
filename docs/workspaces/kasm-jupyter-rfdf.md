@@ -5,7 +5,9 @@ platform pre-installed — for notebook-driven analysis inside Kasm.
 
 ## Contents
 
-- **JupyterLab** + `rfdf[ml]` in a dedicated venv at `/opt/rfdf`.
+- **JupyterLab** + base `rfdf` in a dedicated venv at `/opt/rfdf`. The heavy
+  `[ml]` extra is not baked in — add it with
+  `/opt/rfdf/bin/pip install 'rfdf[ml]'`, or use the rfdf-tools NFS venv.
 - A desktop shortcut launches `jupyter lab`.
 
 ## Notebooks volume

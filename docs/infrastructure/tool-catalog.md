@@ -25,7 +25,7 @@ the upstream README if needed. It is the one catalogue tool not automated.
 | `kasm-ubuntu-rftools`          | GUI RF apps; mounts `/opt/rftools/` over NFS |
 | `kasm-ubuntu-wine-antennas`    | Wine + MMANA-GAL Pro + 4nec2 + xnec2c |
 | `kasm-kali-rf`                 | Kali + RF / wireless-security tools |
-| `kasm-jupyter-rfdf`            | JupyterLab + `rfdf[ml]` |
+| `kasm-jupyter-rfdf`            | JupyterLab + `rfdf` (base; add `[ml]` in-workspace) |
 
 ## rfdf-daq
 
@@ -38,8 +38,10 @@ host.
 
 ## rfdf-jupyter
 
-code-server (`code.rf.lan`) + JupyterLab (`jupyter.rf.lan`), both with
-`rfdf[ml]` pre-installed.
+code-server (`code.rf.lan`) + JupyterLab (`jupyter.rf.lan`), both with base
+`rfdf` pre-installed (the heavy `[ml]` extra is added in-container or used
+from the rfdf-tools NFS venv — `rfdf[ml]`'s torchsig tree backtracks pip for
+hours inside a Docker build).
 
 ## rfdf-winrf (manual)
 
