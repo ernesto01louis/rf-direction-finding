@@ -8,6 +8,8 @@ FROM kasmweb/core-ubuntu-jammy:1.16.1
 
 USER root
 ENV DEBIAN_FRONTEND=noninteractive
+# pipefail so a failed curl in the Kismet-key pipe aborts the build (DL4006).
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # The kasm core-ubuntu-jammy base ships a trimmed sources.list — enable the
 # `universe` component, then add Kismet's own apt repo (Kismet is no longer in
