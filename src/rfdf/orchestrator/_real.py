@@ -19,6 +19,7 @@ import ai_orchestrator_client as aoc
 
 from .consumer import RfdfConsumer
 from .evidence import RfdfEvidenceBundle, build_bundle
+from .vault import RfdfRecorder
 
 # Re-export the SDK's consumer-integration surface so callers use a
 # single import root: ``from rfdf.orchestrator import Consumer``.
@@ -34,6 +35,7 @@ __all__ = [
     "Ntfy",
     "RfdfConsumer",
     "RfdfEvidenceBundle",
+    "RfdfRecorder",
     "Vault",
     "build_bundle",
     "capability",
