@@ -10,6 +10,8 @@ import asyncio
 
 import pytest
 
+pytest.importorskip("ai_orchestrator_client")
+
 from rfdf.orchestrator import RfdfConsumer
 from rfdf.orchestrator.consumer import DATA_PLANE_CAPABILITIES
 

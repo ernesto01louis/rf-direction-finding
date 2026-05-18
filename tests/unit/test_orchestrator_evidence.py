@@ -6,6 +6,8 @@ import json
 
 import pytest
 
+pytest.importorskip("ai_orchestrator_client")
+
 from rfdf.orchestrator import evidence
 
 

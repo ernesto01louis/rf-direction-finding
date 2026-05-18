@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import pytest
+
+pytest.importorskip("ai_orchestrator_client")
+
 from ai_orchestrator_client import ServiceUnavailable
 
 from rfdf.orchestrator.ntfy import RfdfAlerts

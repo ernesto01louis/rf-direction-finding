@@ -12,6 +12,8 @@ from types import SimpleNamespace
 
 import pytest
 
+pytest.importorskip("ai_orchestrator_client")
+
 from rfdf.orchestrator.planner import (
     Flowgraph,
     FlowgraphBridge,
