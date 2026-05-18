@@ -19,6 +19,7 @@ import ai_orchestrator_client as aoc
 
 from .consumer import RfdfConsumer
 from .evidence import RfdfEvidenceBundle, build_bundle
+from .planner import FlowgraphBridge
 from .vault import RfdfRecorder
 
 # Re-export the SDK's consumer-integration surface so callers use a
@@ -31,6 +32,7 @@ capability = aoc.capability
 
 __all__ = [
     "Consumer",
+    "FlowgraphBridge",
     "Hindsight",
     "Ntfy",
     "RfdfConsumer",

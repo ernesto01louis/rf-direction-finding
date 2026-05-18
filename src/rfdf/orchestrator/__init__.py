@@ -33,6 +33,7 @@ from .availability import OrchestratorNotAvailableError, is_available
 # lazily resolved via __getattr__ and present only with [orchestrator].
 __all__ = [
     "Consumer",
+    "FlowgraphBridge",
     "Hindsight",
     "Ntfy",
     "OrchestratorNotAvailableError",
@@ -51,6 +52,7 @@ __all__ = [
 _LAZY_NAMES = frozenset(
     {
         "Consumer",
+        "FlowgraphBridge",
         "Hindsight",
         "Ntfy",
         "RfdfConsumer",
