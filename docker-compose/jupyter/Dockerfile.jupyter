@@ -3,5 +3,9 @@ FROM quay.io/jupyter/scipy-notebook:2024-12-23
 
 ARG RFDF_VERSION=v0.1.0-alpha
 
+# Torch from the CPU-only index — the default wheel bundles ~2 GB of unused
+# CUDA libraries.
 RUN pip install --no-cache-dir \
+        --index-url https://download.pytorch.org/whl/cpu torch torchvision \
+    && pip install --no-cache-dir \
         "rfdf[ml] @ git+https://github.com/ernesto01louis/rf-direction-finding.git@${RFDF_VERSION}"

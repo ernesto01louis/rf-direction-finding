@@ -8,17 +8,25 @@ FROM kasmweb/core-ubuntu-jammy:1.16.1
 
 USER root
 ENV DEBIAN_FRONTEND=noninteractive
+# pipefail so a failed curl in the Kismet-key pipe aborts the build (DL4006).
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # The kasm core-ubuntu-jammy base ships a trimmed sources.list — enable the
-# `universe` component so kismet et al. resolve.
+# `universe` component, then add Kismet's own apt repo (Kismet is no longer in
+# the Ubuntu archive — upstream ships its own repo per release codename).
 RUN apt-get update && apt-get install -y --no-install-recommends \
         software-properties-common \
+        curl \
+        gnupg \
     && add-apt-repository -y universe \
+    && curl -fsSL https://www.kismetwireless.net/repos/kismet-release.gpg.key \
+        | gpg --dearmor -o /usr/share/keyrings/kismet-archive-keyring.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/kismet-archive-keyring.gpg] https://www.kismetwireless.net/repos/apt/release/jammy jammy main" \
+        > /etc/apt/sources.list.d/kismet.list \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# RF GUI toolchain available in the Ubuntu 22.04 repositories.
-# nanovna-saver is NOT an apt package — it is pip-installed in the rftools
-# venv (NFS-mounted at /opt/rftools), so it is not listed here.
+# RF GUI toolchain. nanovna-saver is NOT an apt package — it is pip-installed
+# in the rftools venv (NFS-mounted at /opt/rftools), so it is not listed here.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         gnuradio \
         gnuradio-dev \
