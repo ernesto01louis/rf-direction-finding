@@ -80,6 +80,8 @@ to use the platform.** Hardware and compute providers live behind extras and ent
 
 | Doc | What's in it |
 |---|---|
+| [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | **Start here** — what rfdf is and how to use every feature |
+| [docs/SOFTWARE-STACK.md](docs/SOFTWARE-STACK.md) | The hosted open-source RF software stack — deploy + access |
 | [VISION.md](VISION.md) | Why this exists, the principles, when-in-doubt questions |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Layered design, HAL contracts, backend discovery, config precedence |
 | [ROADMAP.md](ROADMAP.md) | Stages 1–7 with status + acceptance criteria |
