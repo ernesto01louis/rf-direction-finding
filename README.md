@@ -26,28 +26,28 @@ planner-dispatched GNU Radio flowgraphs, and ntfy alerts.
 
 ## Status
 
-**v0.1.0-beta — software ecosystem hosting (prior: v0.1.0-alpha reference
-hardware backends).** Stage 6 is **pure infrastructure** — the platform core
-has not changed since `v0.1.0-alpha`. It adds the operator-facing "workshop":
-an Ansible-provisioned ecosystem of RF / SDR / EM-simulation tools, hosted
-*alongside* the platform on adjacent Proxmox infrastructure and reached through
-a browser — Kasm Workspaces, Apache Guacamole, OpenWebRX+, JupyterLab,
-code-server, a Homepage dashboard, Authelia SSO behind a Traefik v3 reverse
-proxy, and Prometheus/Grafana monitoring. None of it is a dependency of
-`pip install rfdf`: a user running `rfdf doa` needs none of these services.
-The platform itself remains feature-complete from `v0.1.0-alpha` — a **USRP
-B210** SDR backend, an **AntRunner** rotator, a **GRBL linear-rail** geometry
-backend, **RTL-SDR**/**KrakenSDR** contrib backends, a `udev` generator, and
-the `rfdf hw` CLI — all hardware SDKs behind lazy-imported extras, with the
-whole pipeline drivable end-to-end on mock backends. The API is not yet stable
-but the platform is fully functional. See
-[STAGE-6-OUTPUTS.md](STAGE-6-OUTPUTS.md), `docs/infrastructure/`, and
-[ROADMAP.md](ROADMAP.md) for what's next.
+**v0.1.0 — first stable release (Stage 7: orchestrator integration + REST
+API).** Stage 7 closes the build: an optional, lazy-imported integration with
+[`ai-orchestrator`](https://github.com/ernesto01louis/ai-orchestrator) —
+consumer registration, citation-grade evidence bundles, Hindsight memory
+writes, L5 vault notes, planner-dispatched GNU Radio flowgraphs, and ntfy
+alerts — plus a standalone REST API (`rfdf api serve`) that doubles as the
+orchestrator's capability callback target. The platform remains
+**standalone-first**: `pip install rfdf` is a complete DOA + classification +
+capture platform with no orchestrator awareness; the `[orchestrator]` extra is
+a bonus, never a baseline. Prior stages: `v0.1.0-alpha` reference hardware
+backends (USRP B210, AntRunner, GRBL rails, RTL-SDR/KrakenSDR contrib),
+`v0.1.0-beta` the operator-facing software ecosystem (Ansible / Kasm /
+Guacamole / monitoring, hosted *alongside* the platform, never a dependency).
+With `v0.1.0` the public API is stable under SemVer. See
+[docs/standalone-vs-orchestrator.md](docs/standalone-vs-orchestrator.md),
+[docs/orchestrator/](docs/orchestrator/), and [ROADMAP.md](ROADMAP.md).
 
 ## Install (zero hardware path)
 
 ```bash
-pip install rfdf  # not yet published; install from source until v0.1.0
+pip install rfdf                 # standalone — complete without an orchestrator
+pip install rfdf[orchestrator]   # + optional ai-orchestrator integration
 ```
 
 The base install pulls only platform-essential dependencies (NumPy, SciPy, Pydantic,

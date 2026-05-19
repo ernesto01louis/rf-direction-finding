@@ -85,15 +85,31 @@ domain libraries appear in `sys.modules` after `import rfdf`.
 
 ## Stage status
 
-Stages 1–6 are shipped and tagged (`v0.0.1` … `v0.1.0-beta`). Stage 4 added the
-`rfdf.ml` signal-classification package plus five compute backends; Stage 5
-(`v0.1.0-alpha`) added the reference hardware backends (B210, AntRunner, GRBL
-rails). Stage 6 (`v0.1.0-beta`) is **pure infrastructure** — the
-Ansible-provisioned tool ecosystem under `ansible/` + `docker-compose/` (Kasm,
-Guacamole, OpenWebRX+, JupyterLab, Homepage, Traefik, Authelia, monitoring).
-No `src/rfdf/` changes (`git diff v0.1.0-alpha..v0.1.0-beta -- src/` is empty);
-see `STAGE-6-OUTPUTS.md` and `docs/infrastructure/`. Stage 7 (orchestrator
-integration + PyPI publish + the REST API, `v0.1.0` GA) is next.
+Stages 1–7 are shipped. Stage 4 added the `rfdf.ml` signal-classification
+package plus five compute backends; Stage 5 (`v0.1.0-alpha`) added the
+reference hardware backends (B210, AntRunner, GRBL rails). Stage 6
+(`v0.1.0-beta`) is **pure infrastructure** — the Ansible-provisioned tool
+ecosystem under `ansible/` + `docker-compose/`.
+
+Stage 7 (`v0.1.0` GA) is the optional orchestrator integration + REST API:
+
+- `src/rfdf/orchestrator/` — lazy-import wrapper. `import rfdf.orchestrator`
+  always succeeds; integration classes resolve via PEP 562 `__getattr__` and
+  raise `OrchestratorNotAvailableError` without the `[orchestrator]` extra.
+  `ai-orchestrator-client` is imported **only** inside `_real.py` and its
+  siblings (`consumer`, `evidence`, `vault`, `planner`, `ntfy`).
+- `RfdfConsumer` (`@capability` adapters), `RfdfEvidenceBundle` / `build_bundle`
+  (rfdf's own bundle schema, `quality` flag, `to_evidence_push` bridge),
+  `RfdfRecorder` (Hindsight + L5 vault), `FlowgraphBridge` (planner-dispatched
+  flowgraphs), `RfdfAlerts` (ntfy, 3 channels).
+- `src/rfdf/api/` — FastAPI app behind the `[api]` extra: `GET /healthz` +
+  `POST /capabilities/{capability}` (the orchestrator's callback target).
+  `create_app()` factory; `rfdf api serve` runs it.
+- `rfdf orchestrator {status,register,hindsight,vault,planner}` CLI.
+
+The platform stays **standalone-first** — every orchestrator path is gated on
+`rfdf.orchestrator.is_available()`. See `docs/orchestrator/`,
+`docs/standalone-vs-orchestrator.md`, and `docs/audit-pass.md`.
 
 ## Caveats
 

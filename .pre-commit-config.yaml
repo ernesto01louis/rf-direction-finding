@@ -43,11 +43,20 @@ repos:
           - "platformdirs>=4"
           - "numpy>=1.26"
           - "types-PyYAML"
+          # Stage 7: light optional SDKs that the orchestrator / api
+          # subtrees type-check against. Pure-Python, so the isolated
+          # hook env can carry them (unlike torch / runpod).
+          # ai-orchestrator-client is pinned to the git main branch
+          # until 0.1.1 lands on PyPI (the published 0.1.0 lacks the
+          # signature-preserving @capability fix). UPGRADE PATH: switch
+          # to "ai-orchestrator-client>=0.1.1" once 0.1.1 is on PyPI.
+          - "ai-orchestrator-client @ git+https://github.com/ernesto01louis/ai-orchestrator-client@main"
+          - "fastapi>=0.115"
         # Limit mypy to the package under src/; tests are excluded by pyproject.toml.
         # src/rfdf/ml/ and src/rfdf/backends/compute/ are excluded here: they
-        # import the heavy [ml] / [compute-*] SDKs (torch, runpod, ...) that this
-        # isolated hook env cannot carry. The `lint` CI job installs those extras
-        # and is the complete mypy gate for those subtrees.
+        # import heavy domain SDKs (torch, runpod, ...) that this isolated hook
+        # env cannot carry. The `lint` CI job installs those extras and is the
+        # complete mypy gate for those two subtrees.
         files: ^src/rfdf/
         exclude: ^src/rfdf/(ml|backends/compute)/
 
