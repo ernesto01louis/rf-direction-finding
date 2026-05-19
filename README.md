@@ -4,7 +4,7 @@
 [![Coverage](https://codecov.io/gh/ernesto01louis/rf-direction-finding/branch/main/graph/badge.svg)](https://codecov.io/gh/ernesto01louis/rf-direction-finding)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![PyPI](https://img.shields.io/badge/pypi-not--yet--published-lightgrey)](#)
+[![PyPI](https://img.shields.io/pypi/v/rfdf)](https://pypi.org/project/rfdf/)
 
 > Hardware-agnostic RF direction finding, signal classification, and phased-array research.
 
