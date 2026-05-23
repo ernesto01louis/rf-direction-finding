@@ -65,10 +65,6 @@ notifier:
 # block makes Authelia *also* a native OIDC provider for services that speak
 # it. HMAC secret + JWKS signing key come from the environment. Clients are
 # registered as services adopt native OIDC (Grafana is wired in PR 4).
-identity_providers:
-  oidc:
-    jwks:
-      - key_id: 'rfdf'
-        algorithm: 'RS256'
-        use: 'sig'
-    clients: []
+
+# OIDC provider disabled for first-run (ForwardAuth via Traefik gates all
+# services). Re-enable by defining a JWKS key + at least one client.

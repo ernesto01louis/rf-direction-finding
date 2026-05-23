@@ -12,8 +12,6 @@ services:
       - "8073:8073"
     # The host LXC owns a dedicated USB SDR (RTL-SDR / KrakenSDR single
     # channel) via the proxmox_lxc usb_passthrough flag.
-    devices:
-      - "/dev/bus/usb:/dev/bus/usb"
     volumes:
       - ./settings:/var/lib/openwebrx
       - ./etc:/etc/openwebrx

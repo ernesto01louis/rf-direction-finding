@@ -20,3 +20,4 @@ docker_daemon_options:
 # A single shared external network so Traefik can reach service containers
 # that live in sibling Compose projects on the same host.
 docker_proxy_network: "rfdf-edge"
+compose_src_root: "/opt/rf-direction-finding/docker-compose"   # fix: roles reference this outside docker_stack

@@ -20,7 +20,7 @@ services:
     networks:
       - rfdf-edge
     healthcheck:
-      test: ["CMD", "authelia", "healthcheck"]
+      test: ["CMD", "/app/healthcheck.sh"]
       interval: 30s
       timeout: 5s
       retries: 3

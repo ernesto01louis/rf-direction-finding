@@ -31,3 +31,4 @@ rfdf_repo_version: "v0.1.0-alpha"
 
 # Apply OS security updates on every run (idempotent; safe to leave on).
 infra_unattended_upgrades: true
+ansible_managed: "Ansible managed"
