@@ -36,12 +36,25 @@
     cmd: "python3 -m venv {{ rftools_venv }}"
     creates: "{{ rftools_venv }}/bin/python"
 
+- name: Install pip build prerequisites (urh's setup.py imports numpy at build time)
+  ansible.builtin.pip:
+    name: [pip, setuptools, wheel, numpy, cython]
+    state: latest
+    virtualenv: "{{ rftools_venv }}"
+
 - name: Install the pip RF toolchain into the venv
   ansible.builtin.pip:
     name: "{{ rftools_pip_packages }}"
     state: present
     virtualenv: "{{ rftools_venv }}"
-    extra_args: "--upgrade"
+    extra_args: "--upgrade --no-build-isolation"
+
+- name: Install urh (no build isolation -> uses the venv numpy/cython)
+  ansible.builtin.pip:
+    name: urh
+    virtualenv: "{{ rftools_venv }}"
+    extra_args: "--no-build-isolation --upgrade"
+
 
 - name: Clone the reference / research source trees
   ansible.builtin.git:
@@ -99,3 +112,12 @@
     name: nfs-kernel-server
     enabled: true
     state: started
+  failed_when: false   # NFS server can't run in an unprivileged LXC; venv-share to mltrain deferred
+
+- name: Mask lighttpd (SatDump pulls it; it binds :80 and collides with Traefik)
+  ansible.builtin.systemd:
+    name: lighttpd
+    state: stopped
+    enabled: false
+    masked: true
+  failed_when: false

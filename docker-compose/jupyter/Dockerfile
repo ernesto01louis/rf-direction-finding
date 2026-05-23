@@ -9,15 +9,15 @@ ARG RFDF_VERSION=v0.1.0-alpha
 # rfdf-jupyter host. Add it in-container if needed: /opt/rfdf/bin/pip install 'rfdf[ml]'.
 #
 # rfdf requires Python >=3.11; the linuxserver jammy base ships 3.10, so
-# python3.11 is pulled from `universe`.
+# python3 is pulled from `universe`.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         software-properties-common \
     && add-apt-repository -y universe \
     && apt-get update && apt-get install -y --no-install-recommends \
-        python3.11 \
-        python3.11-venv \
+        python3 \
+        python3-venv \
         git \
-    && python3.11 -m venv /opt/rfdf \
+    && python3 -m venv /opt/rfdf \
     && /opt/rfdf/bin/pip install --no-cache-dir --upgrade pip \
     && /opt/rfdf/bin/pip install --no-cache-dir \
         "rfdf @ git+https://github.com/ernesto01louis/rf-direction-finding.git@${RFDF_VERSION}" \

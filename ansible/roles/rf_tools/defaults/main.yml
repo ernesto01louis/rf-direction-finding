@@ -19,10 +19,8 @@ rftools_apt_packages:
   - libhackrf-dev
   - multimon-ng
   - inspectrum
-  - urh
   - wireshark
   - tshark
-  - kismet
   - xnec2c
   - nec2c
   - gpredict
@@ -32,15 +30,13 @@ rftools_apt_packages:
 
 # pip set installed into rftools_venv.
 rftools_pip_packages:
-  - "rfdf[ml,antenna,api]"
-  - torchsig
+  - "rfdf[antenna,api]"   # ml/torchsig deferred (hours-long pip backtrack; install in-venv on demand)
   - sigmf
   - scikit-rf
   - pynec
   - necpp
   - pyargus
   - pyadi-iio
-  - nanovna-saver
 
 # git-cloned source trees (reference + research extensions).
 rftools_git_repos:
@@ -52,7 +48,7 @@ rftools_git_repos:
 
 # SatDump ships an official Debian .deb — confirm the current URL at
 # https://github.com/SatDump/SatDump/releases before a bump.
-rftools_satdump_deb_url: "https://github.com/SatDump/SatDump/releases/latest/download/satdump-ubuntu-2204-amd64.deb"
+rftools_satdump_deb_url: "https://github.com/SatDump/SatDump/releases/download/nightly/satdump_ubuntu_22.04_amd64.deb"
 
 # NFS export: the Kasm host mounts /opt/rftools into kasm-ubuntu-rftools.
 rftools_nfs_clients:

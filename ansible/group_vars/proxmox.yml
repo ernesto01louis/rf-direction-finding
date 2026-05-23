@@ -11,13 +11,13 @@ proxmox_api_host: "192.168.2.13"
 proxmox_api_user: "root@pam"
 proxmox_api_token_id: "rfdf-ansible"          # create: pveum user token add ...
 # proxmox_api_token_secret:  <-- defined in vault/secrets.yml
-proxmox_node: "pve"                            # `pvesh get /nodes` to confirm
+proxmox_node: "Homelab1"                       # corrected from pve
 proxmox_api_validate_certs: false              # self-signed homelab cert
 
 # --- Guest placement defaults ----------------------------------------------
-proxmox_storage: "local-lvm"                   # rootfs / disk storage pool
+proxmox_storage: "Storage"                        # 2TB dir pool (was local-lvm, too small)
 proxmox_template_storage: "local"              # where templates + ISOs live
-proxmox_lxc_template: "debian-12-standard_12.7-1_amd64.tar.zst"
+proxmox_lxc_template: "debian-12-standard_12.12-1_amd64.tar.zst"
 proxmox_win_iso: "Win11_24H2_EnglishInternational_x64.iso"
 
 # --- Networking -------------------------------------------------------------
@@ -39,6 +39,7 @@ proxmox_lxc_defaults:
 # Sizing overrides keyed by inventory hostname. Anything absent uses the
 # defaults above. Tuned to the Stage 6 brief's role descriptions.
 proxmox_guest_sizing:
+  rfdf: { cores: 8, memory: 16384, disk: 120 }   # consolidation host (unpriv)
   rfdf-platform: { cores: 2, memory: 2048, disk: 16 }
   rfdf-tools: { cores: 4, memory: 8192, disk: 80 }
   rfdf-kasm: { cores: 4, memory: 8192, disk: 60 }
@@ -46,6 +47,6 @@ proxmox_guest_sizing:
   rfdf-mltrain: { cores: 2, memory: 2048, disk: 16 }
   rfdf-dashboard: { cores: 2, memory: 4096, disk: 30 }
   rfdf-jupyter: { cores: 4, memory: 8192, disk: 40 }
-  rfdf-openwebrx: { cores: 2, memory: 2048, disk: 20, privileged: true }
-  rfdf-daq: { cores: 4, memory: 4096, disk: 30, privileged: true }
+  rfdf-openwebrx: { cores: 2, memory: 2048, disk: 20 }   # unpriv until SDR arrives
+  rfdf-daq: { cores: 4, memory: 4096, disk: 30 }   # unpriv until SDR arrives
   rfdf-winrf: { cores: 4, memory: 8192, disk: 64 }

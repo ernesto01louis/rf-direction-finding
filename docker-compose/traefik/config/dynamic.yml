@@ -113,28 +113,28 @@ http:
     kasm:
       loadBalancer:
         servers:
-          - url: "https://192.168.2.242:443"
+          - url: "http://192.168.2.246:9999"
         serversTransport: insecure-tls
     guacamole:
       loadBalancer:
         servers:
-          - url: "http://192.168.2.243:8080"
+          - url: "http://192.168.2.246:8080"
     openwebrx:
       loadBalancer:
         servers:
-          - url: "http://192.168.2.248:8073"
+          - url: "http://192.168.2.246:8073"
     jupyter:
       loadBalancer:
         servers:
-          - url: "http://192.168.2.247:8889"
+          - url: "http://192.168.2.246:8889"
     code-server:
       loadBalancer:
         servers:
-          - url: "http://192.168.2.247:8443"
+          - url: "http://192.168.2.246:8443"
     rfdf-api:
       loadBalancer:
         servers:
-          - url: "http://192.168.2.239:8000"
+          - url: "http://192.168.2.246:8000"
     grafana:
       loadBalancer:
         servers:
