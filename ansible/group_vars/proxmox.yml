@@ -39,6 +39,7 @@ proxmox_lxc_defaults:
 # Sizing overrides keyed by inventory hostname. Anything absent uses the
 # defaults above. Tuned to the Stage 6 brief's role descriptions.
 proxmox_guest_sizing:
+  rfdf: { cores: 8, memory: 16384, disk: 120 }   # consolidation host (unpriv)
   rfdf-platform: { cores: 2, memory: 2048, disk: 16 }
   rfdf-tools: { cores: 4, memory: 8192, disk: 80 }
   rfdf-kasm: { cores: 4, memory: 8192, disk: 60 }

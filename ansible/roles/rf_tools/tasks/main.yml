@@ -113,3 +113,11 @@
     enabled: true
     state: started
   failed_when: false   # NFS server can't run in an unprivileged LXC; venv-share to mltrain deferred
+
+- name: Mask lighttpd (SatDump pulls it; it binds :80 and collides with Traefik)
+  ansible.builtin.systemd:
+    name: lighttpd
+    state: stopped
+    enabled: false
+    masked: true
+  failed_when: false

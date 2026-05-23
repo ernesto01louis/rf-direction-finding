@@ -24,6 +24,11 @@
     mode: "0640"
     directory_mode: "0750"
 
+- name: "Make {{ stack_name }} stack world-readable (unprivileged-LXC container uids)"
+  ansible.builtin.command:
+    cmd: "chmod -R o+rX {{ docker_stacks_root }}/{{ stack_name }}"
+  changed_when: false
+
 - name: "Render the stack .env from vault variables: {{ stack_name }}"
   ansible.builtin.template:
     src: env.j2

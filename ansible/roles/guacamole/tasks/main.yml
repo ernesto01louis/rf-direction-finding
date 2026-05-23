@@ -10,7 +10,7 @@
     state: directory
     owner: root
     group: root
-    mode: "0750"
+    mode: "0755"
 
 - name: Copy the Guacamole Compose stack to the host
   ansible.builtin.copy:
@@ -27,7 +27,7 @@
     state: directory
     owner: root
     group: root
-    mode: "0750"
+    mode: "0755"
   loop:
     - data
     - initdb

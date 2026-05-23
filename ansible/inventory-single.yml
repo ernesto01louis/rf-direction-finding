@@ -1,0 +1,27 @@
+# Single-LXC consolidation inventory — the entire rfdf software stack on ONE
+# host (rfdf @ 192.168.2.246, privileged), all compose stacks sharing the
+# rfdf-edge docker network behind one Traefik. Kasm omitted (443 conflict with
+# Traefik; Guacamole covers browser-desktop). rfdf-daq omitted (no SDR).
+all:
+  vars:
+    ansible_user: root
+    ansible_ssh_private_key_file: ~/.ssh/id_ed25519
+
+  children:
+    proxmox:
+      children:
+        lxc:
+          hosts:
+            rfdf: { ansible_host: 192.168.2.246, proxmox_vmid: 6246 }
+    docker:
+      hosts:
+        rfdf:
+    traefik_hosts:    { hosts: { rfdf: } }
+    authelia_hosts:   { hosts: { rfdf: } }
+    homepage_hosts:   { hosts: { rfdf: } }
+    monitoring_hosts: { hosts: { rfdf: } }
+    guacamole_hosts:  { hosts: { rfdf: } }
+    openwebrx_hosts:  { hosts: { rfdf: } }
+    jupyter_hosts:    { hosts: { rfdf: } }
+    rf_tools_hosts:   { hosts: { rfdf: } }
+    platform_hosts:   { hosts: { rfdf: } }
